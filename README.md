@@ -4,6 +4,12 @@
 
 Win-CodexBar is a Windows system-tray app for keeping AI coding-tool usage visible without opening a dozen dashboards. It ports the spirit of [CodexBar](https://github.com/steipete/CodexBar) to a Tauri + React desktop shell backed by shared Rust provider logic.
 
+## Attribution
+
+This is a personal fork of [Win-CodexBar](https://github.com/Finesssee/Win-CodexBar) (v0.37.2),
+itself a Windows port of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
+MIT licensed; see [LICENSE](LICENSE).
+
 <table>
   <tr>
     <td width="36%" align="center">

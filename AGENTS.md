@@ -1,12 +1,18 @@
 # Repository Guidelines
 
+> **This is a personal hard fork of Win-CodexBar v0.37.2**, pruned to 6 providers
+> (Codex, Claude, z.ai, Gemini, Grok, + hidden Synthetic for tests). There is no
+> upstream link, no auto-update, and no public release pipeline yet. Build/test
+> commands and coding-style below still apply. Design: `docs/superpowers/specs/`,
+> implementation plan: `docs/superpowers/plans/`.
+
 ## Current Project State
-- This branch launches the Tauri desktop shell by default (`apps/desktop-tauri/src-tauri`), while
-  `rust/` remains the shared backend/domain crate and standalone CLI.
-- Many files in `docs/` and some workflows reference the upstream macOS/Swift project. Treat those as historical or
-  upstream-sync material unless the task is explicitly about upstream parity.
-- When repo docs conflict, trust the active Tauri desktop sources in `apps/desktop-tauri` plus the shared Rust sources
-  in `rust/src`.
+- The Tauri desktop shell (`apps/desktop-tauri/src-tauri`) is the default UI; `rust/`
+  is the shared backend/domain crate and standalone CLI.
+- `rust/src/gen` does not exist in this fork. Trust the active Tauri desktop sources
+  in `apps/desktop-tauri` plus the shared Rust sources in `rust/src`.
+- Only 6 providers are supported. Do NOT reintroduce pruned providers without a
+  design decision; the enum/factory are the single source of truth.
 
 ## Project Structure & Modules
 - `apps/desktop-tauri/`: Tauri desktop shell (default UI). React frontend in `apps/desktop-tauri/src/`,
