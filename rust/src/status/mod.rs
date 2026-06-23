@@ -80,10 +80,7 @@ pub fn get_status_page_url(provider: &str) -> Option<&'static str> {
         "claude" | "anthropic" => Some("https://status.anthropic.com"),
         "codex" | "openai" => Some("https://status.openai.com"),
         "gemini" | "google" => Some("https://status.cloud.google.com"),
-        "copilot" | "github" => Some("https://www.githubstatus.com"),
-        "cursor" => Some("https://status.cursor.com"),
-        "factory" | "droid" => None, // Factory.ai doesn't have a public status page
-        "zai" | "z.ai" => None,      // z.ai doesn't have a public status page
+        "zai" | "z.ai" => None, // z.ai doesn't have a public status page
         _ => None,
     }
 }

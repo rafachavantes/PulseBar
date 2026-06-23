@@ -61,166 +61,10 @@ impl TokenAccountSupport {
                 requires_manual_cookie_source: false,
                 cookie_name: None,
             }),
-            ProviderId::Cursor => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Cursor Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::OpenCode => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple OpenCode Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Factory => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Factory Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Alibaba => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Alibaba Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::AlibabaTokenPlan => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Alibaba Token Plan Cookie headers.",
-                placeholder: "Cookie: cna=...; login_aliyunid_csrf=...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::MiniMax => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple MiniMax Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Augment => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Augment Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Amp => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Amp Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Ollama => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Ollama Cookie headers or __Secure-session values.",
-                placeholder: "__Secure-session value or Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: Some("__Secure-session"),
-            }),
-            ProviderId::T3Chat => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple T3 Chat Cookie headers or full browser cURL captures.",
-                placeholder: "Cookie: ... or curl ... -H 'Cookie: ...'",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Mistral => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Mistral Cookie headers.",
-                placeholder: "Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::Manus => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Manus session_id values.",
-                placeholder: "session_id value or Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: Some("session_id"),
-            }),
-            ProviderId::MiMo => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Xiaomi MiMo Cookie headers.",
-                placeholder: "Cookie: api-platform_serviceToken=...; userId=...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: None,
-            }),
-            ProviderId::CommandCode => Some(TokenAccountSupport {
-                title: "Session tokens",
-                subtitle: "Store multiple Command Code better-auth session tokens.",
-                placeholder: "better-auth.session_token value or Cookie: ...",
-                injection: TokenInjection::CookieHeader,
-                requires_manual_cookie_source: true,
-                cookie_name: Some("__Secure-better-auth.session_token"),
-            }),
-            ProviderId::Copilot => Some(TokenAccountSupport {
-                title: "GitHub accounts",
-                subtitle: "Store GitHub OAuth tokens for Copilot plan usage.",
-                placeholder: "Sign in with GitHub or paste a GitHub OAuth token...",
-                injection: TokenInjection::Environment {
-                    key: "GITHUB_TOKEN".to_string(),
-                },
-                requires_manual_cookie_source: false,
-                cookie_name: None,
-            }),
             // These providers don't support token accounts
-            ProviderId::Codex
-            | ProviderId::Gemini
-            | ProviderId::Antigravity
-            | ProviderId::Kiro
-            | ProviderId::VertexAI
-            | ProviderId::Kimi
-            | ProviderId::KimiK2
-            | ProviderId::Synthetic
-            | ProviderId::JetBrains
-            | ProviderId::Warp
-            | ProviderId::AzureOpenAI
-            | ProviderId::OpenRouter
-            | ProviderId::NanoGPT
-            | ProviderId::Infini
-            | ProviderId::Perplexity
-            | ProviderId::Abacus
-            | ProviderId::OpenCodeGo
-            | ProviderId::Kilo
-            | ProviderId::Bedrock
-            | ProviderId::Codebuff
-            | ProviderId::DeepSeek
-            | ProviderId::Windsurf
-            | ProviderId::Doubao
-            | ProviderId::Crof
-            | ProviderId::StepFun
-            | ProviderId::Venice
-            | ProviderId::OpenAIApi
-            | ProviderId::Grok
-            | ProviderId::ElevenLabs
-            | ProviderId::Deepgram
-            | ProviderId::Groq
-            | ProviderId::LLMProxy
-            | ProviderId::Chutes
-            | ProviderId::LiteLLM
-            | ProviderId::Poe
-            | ProviderId::Devin
-            | ProviderId::Zed => None,
+            ProviderId::Codex | ProviderId::Gemini | ProviderId::Grok | ProviderId::Synthetic => {
+                None
+            }
         }
     }
 
@@ -607,8 +451,7 @@ mod tests {
     #[test]
     fn test_token_account_support() {
         assert!(TokenAccountSupport::is_supported(ProviderId::Claude));
-        assert!(TokenAccountSupport::is_supported(ProviderId::Cursor));
-        assert!(TokenAccountSupport::is_supported(ProviderId::Copilot));
+        assert!(TokenAccountSupport::is_supported(ProviderId::Zai));
         assert!(!TokenAccountSupport::is_supported(ProviderId::Codex));
         assert!(!TokenAccountSupport::is_supported(ProviderId::Gemini));
     }
@@ -640,9 +483,6 @@ mod tests {
             "sessionKey=already_formatted",
         );
         assert_eq!(header, "sessionKey=already_formatted");
-
-        let header = TokenAccountSupport::normalized_cookie_header(ProviderId::Ollama, "abc123");
-        assert_eq!(header, "__Secure-session=abc123");
     }
 
     #[test]

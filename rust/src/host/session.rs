@@ -111,54 +111,6 @@ pub fn gemini_cli_signed_in() -> bool {
         .unwrap_or(false)
 }
 
-/// Filesystem path to VertexAI application-default credentials. Respects the
-/// `GOOGLE_APPLICATION_CREDENTIALS` env var when set, otherwise falls back to
-/// the gcloud well-known location under the OS config dir.
-pub fn vertexai_credentials_path() -> Option<std::path::PathBuf> {
-    if let Ok(path) = std::env::var("GOOGLE_APPLICATION_CREDENTIALS")
-        && !path.trim().is_empty()
-    {
-        return Some(std::path::PathBuf::from(path));
-    }
-    dirs::config_dir().map(|config| {
-        config
-            .join("gcloud")
-            .join("application_default_credentials.json")
-    })
-}
-
-/// `true` when VertexAI application-default credentials exist on disk.
-pub fn vertexai_signed_in() -> bool {
-    vertexai_credentials_path()
-        .map(|p| p.exists())
-        .unwrap_or(false)
-}
-
-/// Detect JetBrains / Google-IDE configuration directories under the user's
-/// config home. Returns an empty list if none are present.
-pub fn jetbrains_detected_ide_paths() -> Vec<std::path::PathBuf> {
-    let Some(config_dir) = dirs::config_dir() else {
-        return Vec::new();
-    };
-    let roots = [config_dir.join("JetBrains"), config_dir.join("Google")];
-    let mut out = Vec::new();
-    for root in roots {
-        if !root.exists() {
-            continue;
-        }
-        if let Ok(entries) = std::fs::read_dir(root) {
-            for entry in entries.flatten() {
-                let p = entry.path();
-                if p.is_dir() {
-                    out.push(p);
-                }
-            }
-        }
-    }
-    out.sort();
-    out
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

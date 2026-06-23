@@ -13,58 +13,10 @@ use super::ProviderFetchResult;
 pub enum ProviderId {
     Codex,
     Claude,
-    Cursor,
-    Factory,
     Gemini,
-    Antigravity,
-    Copilot,
     Zai,
-    MiniMax,
-    Kiro,
-    VertexAI,
-    Augment,
-    OpenCode,
-    Kimi,
-    KimiK2,
-    Amp,
-    Warp,
-    Ollama,
-    AzureOpenAI,
-    T3Chat,
-    OpenRouter,
-    Synthetic,
-    JetBrains,
-    Alibaba,
-    AlibabaTokenPlan,
-    NanoGPT,
-    Infini,
-    Perplexity,
-    Abacus,
-    Mistral,
-    OpenCodeGo,
-    Kilo,
-    Bedrock,
-    Codebuff,
-    DeepSeek,
-    Windsurf,
-    Manus,
-    MiMo,
-    Doubao,
-    CommandCode,
-    Crof,
-    StepFun,
-    Venice,
-    OpenAIApi,
     Grok,
-    ElevenLabs,
-    Deepgram,
-    Groq,
-    LLMProxy,
-    Chutes,
-    LiteLLM,
-    Poe,
-    Devin,
-    Zed,
+    Synthetic,
 }
 
 impl ProviderId {
@@ -73,58 +25,10 @@ impl ProviderId {
         &[
             ProviderId::Codex,
             ProviderId::Claude,
-            ProviderId::Cursor,
-            ProviderId::Factory,
             ProviderId::Gemini,
-            ProviderId::Antigravity,
-            ProviderId::Copilot,
             ProviderId::Zai,
-            ProviderId::MiniMax,
-            ProviderId::Kiro,
-            ProviderId::VertexAI,
-            ProviderId::Augment,
-            ProviderId::OpenCode,
-            ProviderId::Kimi,
-            ProviderId::KimiK2,
-            ProviderId::Amp,
-            ProviderId::Warp,
-            ProviderId::Ollama,
-            ProviderId::AzureOpenAI,
-            ProviderId::T3Chat,
-            ProviderId::OpenRouter,
-            ProviderId::Synthetic,
-            ProviderId::JetBrains,
-            ProviderId::Alibaba,
-            ProviderId::AlibabaTokenPlan,
-            ProviderId::NanoGPT,
-            ProviderId::Infini,
-            ProviderId::Perplexity,
-            ProviderId::Abacus,
-            ProviderId::Mistral,
-            ProviderId::OpenCodeGo,
-            ProviderId::Kilo,
-            ProviderId::Bedrock,
-            ProviderId::Codebuff,
-            ProviderId::DeepSeek,
-            ProviderId::Windsurf,
-            ProviderId::Manus,
-            ProviderId::MiMo,
-            ProviderId::Doubao,
-            ProviderId::CommandCode,
-            ProviderId::Crof,
-            ProviderId::StepFun,
-            ProviderId::Venice,
-            ProviderId::OpenAIApi,
             ProviderId::Grok,
-            ProviderId::ElevenLabs,
-            ProviderId::Deepgram,
-            ProviderId::Groq,
-            ProviderId::LLMProxy,
-            ProviderId::Chutes,
-            ProviderId::LiteLLM,
-            ProviderId::Poe,
-            ProviderId::Devin,
-            ProviderId::Zed,
+            ProviderId::Synthetic,
         ]
     }
 
@@ -133,58 +37,10 @@ impl ProviderId {
         match self {
             ProviderId::Codex => "codex",
             ProviderId::Claude => "claude",
-            ProviderId::Cursor => "cursor",
-            ProviderId::Factory => "factory",
             ProviderId::Gemini => "gemini",
-            ProviderId::Antigravity => "antigravity",
-            ProviderId::Copilot => "copilot",
             ProviderId::Zai => "zai",
-            ProviderId::MiniMax => "minimax",
-            ProviderId::Kiro => "kiro",
-            ProviderId::VertexAI => "vertexai",
-            ProviderId::Augment => "augment",
-            ProviderId::OpenCode => "opencode",
-            ProviderId::Kimi => "kimi",
-            ProviderId::KimiK2 => "kimik2",
-            ProviderId::Amp => "amp",
-            ProviderId::Warp => "warp",
-            ProviderId::Ollama => "ollama",
-            ProviderId::AzureOpenAI => "azureopenai",
-            ProviderId::T3Chat => "t3chat",
-            ProviderId::OpenRouter => "openrouter",
-            ProviderId::Synthetic => "synthetic",
-            ProviderId::JetBrains => "jetbrains",
-            ProviderId::Alibaba => "alibaba",
-            ProviderId::AlibabaTokenPlan => "alibabatokenplan",
-            ProviderId::NanoGPT => "nanogpt",
-            ProviderId::Infini => "infini",
-            ProviderId::Perplexity => "perplexity",
-            ProviderId::Abacus => "abacus",
-            ProviderId::Mistral => "mistral",
-            ProviderId::OpenCodeGo => "opencodego",
-            ProviderId::Kilo => "kilo",
-            ProviderId::Bedrock => "bedrock",
-            ProviderId::Codebuff => "codebuff",
-            ProviderId::DeepSeek => "deepseek",
-            ProviderId::Windsurf => "windsurf",
-            ProviderId::Manus => "manus",
-            ProviderId::MiMo => "mimo",
-            ProviderId::Doubao => "doubao",
-            ProviderId::CommandCode => "commandcode",
-            ProviderId::Crof => "crof",
-            ProviderId::StepFun => "stepfun",
-            ProviderId::Venice => "venice",
-            ProviderId::OpenAIApi => "openaiapi",
             ProviderId::Grok => "grok",
-            ProviderId::ElevenLabs => "elevenlabs",
-            ProviderId::Deepgram => "deepgram",
-            ProviderId::Groq => "groq",
-            ProviderId::LLMProxy => "llmproxy",
-            ProviderId::Chutes => "chutes",
-            ProviderId::LiteLLM => "litellm",
-            ProviderId::Poe => "poe",
-            ProviderId::Devin => "devin",
-            ProviderId::Zed => "zed",
+            ProviderId::Synthetic => "synthetic",
         }
     }
 
@@ -193,58 +49,10 @@ impl ProviderId {
         match self {
             ProviderId::Codex => "Codex",
             ProviderId::Claude => "Claude",
-            ProviderId::Cursor => "Cursor",
-            ProviderId::Factory => "Factory",
             ProviderId::Gemini => "Gemini",
-            ProviderId::Antigravity => "Antigravity",
-            ProviderId::Copilot => "Copilot",
             ProviderId::Zai => "z.ai",
-            ProviderId::MiniMax => "MiniMax",
-            ProviderId::Kiro => "Kiro",
-            ProviderId::VertexAI => "Vertex AI",
-            ProviderId::Augment => "Augment",
-            ProviderId::OpenCode => "OpenCode",
-            ProviderId::Kimi => "Kimi",
-            ProviderId::KimiK2 => "Kimi K2",
-            ProviderId::Amp => "Amp",
-            ProviderId::Warp => "Warp",
-            ProviderId::Ollama => "Ollama",
-            ProviderId::AzureOpenAI => "Azure OpenAI",
-            ProviderId::T3Chat => "T3 Chat",
-            ProviderId::OpenRouter => "OpenRouter",
-            ProviderId::Synthetic => "Synthetic",
-            ProviderId::JetBrains => "JetBrains AI",
-            ProviderId::Alibaba => "Alibaba",
-            ProviderId::AlibabaTokenPlan => "Alibaba Token Plan",
-            ProviderId::NanoGPT => "NanoGPT",
-            ProviderId::Infini => "Infini",
-            ProviderId::Perplexity => "Perplexity",
-            ProviderId::Abacus => "Abacus AI",
-            ProviderId::Mistral => "Mistral",
-            ProviderId::OpenCodeGo => "OpenCode Go",
-            ProviderId::Kilo => "Kilo",
-            ProviderId::Bedrock => "AWS Bedrock",
-            ProviderId::Codebuff => "Codebuff",
-            ProviderId::DeepSeek => "DeepSeek",
-            ProviderId::Windsurf => "Windsurf",
-            ProviderId::Manus => "Manus",
-            ProviderId::MiMo => "Xiaomi MiMo",
-            ProviderId::Doubao => "Doubao",
-            ProviderId::CommandCode => "Command Code",
-            ProviderId::Crof => "Crof",
-            ProviderId::StepFun => "StepFun",
-            ProviderId::Venice => "Venice",
-            ProviderId::OpenAIApi => "OpenAI API",
             ProviderId::Grok => "Grok",
-            ProviderId::ElevenLabs => "ElevenLabs",
-            ProviderId::Deepgram => "Deepgram",
-            ProviderId::Groq => "Groq",
-            ProviderId::LLMProxy => "LLM Proxy",
-            ProviderId::Chutes => "Chutes",
-            ProviderId::LiteLLM => "LiteLLM",
-            ProviderId::Poe => "Poe",
-            ProviderId::Devin => "Devin",
-            ProviderId::Zed => "Zed",
+            ProviderId::Synthetic => "Synthetic",
         }
     }
 
@@ -254,62 +62,11 @@ impl ProviderId {
     pub fn cookie_domain(&self) -> Option<&'static str> {
         match self {
             ProviderId::Claude => Some("claude.ai"),
-            ProviderId::Cursor => Some("cursor.com"),
-            ProviderId::Factory => Some("app.factory.ai"),
             ProviderId::Codex => Some("chatgpt.com"),
             ProviderId::Gemini => Some("aistudio.google.com"),
-            ProviderId::Kiro => Some("kiro.dev"),
-            ProviderId::Kimi => Some("kimi.moonshot.cn"),
-            ProviderId::KimiK2 => Some("platform.moonshot.cn"),
-            ProviderId::MiniMax => Some("platform.minimax.io"),
-            ProviderId::OpenCode => Some("opencode.ai"),
-            ProviderId::Augment => Some("app.augmentcode.com"),
-            ProviderId::Amp => Some("sourcegraph.com"),
-            ProviderId::Antigravity => Some("antigravity.ai"),
-            ProviderId::Alibaba => {
-                Some(crate::providers::AlibabaRegion::Singapore.primary_cookie_domain())
-            }
-            ProviderId::AlibabaTokenPlan => Some("bailian.console.aliyun.com"),
-            ProviderId::Ollama => Some("ollama.com"),
-            ProviderId::T3Chat => Some("t3.chat"),
-            ProviderId::Perplexity => Some("perplexity.ai"),
-            ProviderId::Abacus => Some("apps.abacus.ai"),
-            ProviderId::Mistral => Some("admin.mistral.ai"),
-            ProviderId::OpenCodeGo => Some("opencode.ai"),
-            ProviderId::Manus => Some("manus.im"),
-            ProviderId::MiMo => Some("platform.xiaomimimo.com"),
-            ProviderId::CommandCode => Some("commandcode.ai"),
             ProviderId::Grok => Some("grok.com"),
-            // Token-based providers (don't use cookies)
-            ProviderId::Copilot => None,
             ProviderId::Zai => None,
-            ProviderId::VertexAI => None,
-            ProviderId::JetBrains => None,
             ProviderId::Synthetic => None,
-            ProviderId::Warp => None,
-            ProviderId::AzureOpenAI => None,
-            ProviderId::OpenRouter => None,
-            ProviderId::NanoGPT => None,
-            ProviderId::Infini => None,
-            ProviderId::Kilo => None,
-            ProviderId::Bedrock => None,
-            ProviderId::Codebuff => None,
-            ProviderId::DeepSeek => None,
-            ProviderId::Windsurf => None,
-            ProviderId::Doubao => None,
-            ProviderId::Crof => None,
-            ProviderId::StepFun => None,
-            ProviderId::Venice => None,
-            ProviderId::OpenAIApi => None,
-            ProviderId::ElevenLabs => None,
-            ProviderId::Deepgram => None,
-            ProviderId::Groq => None,
-            ProviderId::LLMProxy => None,
-            ProviderId::Chutes => None,
-            ProviderId::LiteLLM => None,
-            ProviderId::Poe => None,
-            ProviderId::Devin => None,
-            ProviderId::Zed => None,
         }
     }
 
@@ -318,65 +75,10 @@ impl ProviderId {
         match name.to_lowercase().as_str() {
             "codex" | "openai" => Some(ProviderId::Codex),
             "claude" | "anthropic" => Some(ProviderId::Claude),
-            "cursor" => Some(ProviderId::Cursor),
-            "factory" | "droid" => Some(ProviderId::Factory),
             "gemini" | "google" => Some(ProviderId::Gemini),
-            "antigravity" => Some(ProviderId::Antigravity),
-            "copilot" | "github" => Some(ProviderId::Copilot),
             "zai" | "z.ai" => Some(ProviderId::Zai),
-            "minimax" => Some(ProviderId::MiniMax),
-            "kiro" | "aws" => Some(ProviderId::Kiro),
-            "vertexai" | "vertex" | "vertex ai" => Some(ProviderId::VertexAI),
-            "augment" => Some(ProviderId::Augment),
-            "opencode" => Some(ProviderId::OpenCode),
-            "kimi" | "moonshot" => Some(ProviderId::Kimi),
-            "kimik2" | "kimi-k2" | "kimi k2" | "k2" => Some(ProviderId::KimiK2),
-            "amp" | "sourcegraph" => Some(ProviderId::Amp),
-            "warp" | "warp-ai" | "warp-terminal" => Some(ProviderId::Warp),
-            "ollama" => Some(ProviderId::Ollama),
-            "azureopenai" | "azure-openai" | "azure openai" => Some(ProviderId::AzureOpenAI),
-            "t3chat" | "t3-chat" | "t3 chat" => Some(ProviderId::T3Chat),
-            "openrouter" | "or" => Some(ProviderId::OpenRouter),
-            "synthetic" => Some(ProviderId::Synthetic),
-            "jetbrains" | "jetbrains-ai" | "jetbrains ai" | "intellij" => {
-                Some(ProviderId::JetBrains)
-            }
-            "alibaba" | "tongyi" | "qianwen" | "qwen" => Some(ProviderId::Alibaba),
-            "alibabatokenplan" | "alibaba-token-plan" | "alibaba token plan" | "alibaba-token"
-            | "bailian-token-plan" => Some(ProviderId::AlibabaTokenPlan),
-            "nanogpt" | "nano-gpt" => Some(ProviderId::NanoGPT),
-            "infini" | "infini-ai" => Some(ProviderId::Infini),
-            "perplexity" | "pplx" => Some(ProviderId::Perplexity),
-            "abacus" | "abacus ai" | "abacus-ai" => Some(ProviderId::Abacus),
-            "mistral" | "mistral-ai" | "mistral ai" => Some(ProviderId::Mistral),
-            "opencodego" | "opencode-go" | "opencode go" => Some(ProviderId::OpenCodeGo),
-            "kilo" => Some(ProviderId::Kilo),
-            "bedrock" | "aws-bedrock" | "aws bedrock" => Some(ProviderId::Bedrock),
-            "codebuff" | "manicode" => Some(ProviderId::Codebuff),
-            "deepseek" | "deep-seek" | "ds" => Some(ProviderId::DeepSeek),
-            "windsurf" | "codeium" => Some(ProviderId::Windsurf),
-            "manus" => Some(ProviderId::Manus),
-            "mimo" | "xiaomi" | "xiaomimimo" | "xiaomi-mimo" | "xiaomi mimo" => {
-                Some(ProviderId::MiMo)
-            }
-            "doubao" | "ark" | "volcengine" => Some(ProviderId::Doubao),
-            "commandcode" | "command-code" | "command code" => Some(ProviderId::CommandCode),
-            "crof" => Some(ProviderId::Crof),
-            "stepfun" | "step-fun" | "step fun" => Some(ProviderId::StepFun),
-            "venice" => Some(ProviderId::Venice),
-            "openaiapi" | "openai-api" | "openai api" | "openai-balance" => {
-                Some(ProviderId::OpenAIApi)
-            }
             "grok" | "xai" | "x.ai" | "supergrok" | "super-grok" => Some(ProviderId::Grok),
-            "elevenlabs" | "eleven-labs" | "11labs" => Some(ProviderId::ElevenLabs),
-            "deepgram" | "dg" => Some(ProviderId::Deepgram),
-            "groq" | "groqcloud" | "groq-cloud" | "groq cloud" => Some(ProviderId::Groq),
-            "llmproxy" | "llm-proxy" | "llm proxy" => Some(ProviderId::LLMProxy),
-            "chutes" | "chutes-ai" | "chutes ai" => Some(ProviderId::Chutes),
-            "litellm" | "lite-llm" | "lite llm" => Some(ProviderId::LiteLLM),
-            "poe" => Some(ProviderId::Poe),
-            "devin" => Some(ProviderId::Devin),
-            "zed" | "zed-ai" => Some(ProviderId::Zed),
+            "synthetic" => Some(ProviderId::Synthetic),
             _ => None,
         }
     }
@@ -547,51 +249,12 @@ pub fn cli_name_map() -> HashMap<&'static str, ProviderId> {
     for id in ProviderId::all() {
         map.insert(id.cli_name(), *id);
     }
-    // Add aliases
+    // Aliases (all must map to a kept variant)
     map.insert("openai", ProviderId::Codex);
     map.insert("anthropic", ProviderId::Claude);
-    map.insert("codebuff", ProviderId::Codebuff);
-    map.insert("manicode", ProviderId::Codebuff);
-    map.insert("deep-seek", ProviderId::DeepSeek);
-    map.insert("ds", ProviderId::DeepSeek);
-    map.insert("codeium", ProviderId::Windsurf);
     map.insert("google", ProviderId::Gemini);
-    map.insert("github", ProviderId::Copilot);
-    map.insert("aws", ProviderId::Kiro);
-    map.insert("vertex", ProviderId::VertexAI);
-    map.insert("sourcegraph", ProviderId::Amp);
-    map.insert("warp-ai", ProviderId::Warp);
-    map.insert("warp-terminal", ProviderId::Warp);
-    map.insert("or", ProviderId::OpenRouter);
-    map.insert("aws-bedrock", ProviderId::Bedrock);
-    map.insert("aws bedrock", ProviderId::Bedrock);
-    map.insert("tongyi", ProviderId::Alibaba);
-    map.insert("qianwen", ProviderId::Alibaba);
-    map.insert("qwen", ProviderId::Alibaba);
-    map.insert("infini-ai", ProviderId::Infini);
-    map.insert("pplx", ProviderId::Perplexity);
-    map.insert("abacus-ai", ProviderId::Abacus);
-    map.insert("mistral-ai", ProviderId::Mistral);
-    map.insert("opencode-go", ProviderId::OpenCodeGo);
-    map.insert("xiaomimimo", ProviderId::MiMo);
-    map.insert("xiaomi-mimo", ProviderId::MiMo);
-    map.insert("ark", ProviderId::Doubao);
-    map.insert("volcengine", ProviderId::Doubao);
-    map.insert("command-code", ProviderId::CommandCode);
-    map.insert("step-fun", ProviderId::StepFun);
-    map.insert("openai-api", ProviderId::OpenAIApi);
-    map.insert("openai-balance", ProviderId::OpenAIApi);
     map.insert("xai", ProviderId::Grok);
     map.insert("supergrok", ProviderId::Grok);
-    map.insert("eleven-labs", ProviderId::ElevenLabs);
-    map.insert("11labs", ProviderId::ElevenLabs);
-    map.insert("dg", ProviderId::Deepgram);
-    map.insert("groqcloud", ProviderId::Groq);
-    map.insert("groq-cloud", ProviderId::Groq);
-    map.insert("chutes-ai", ProviderId::Chutes);
-    map.insert("lite-llm", ProviderId::LiteLLM);
-    map.insert("zed-ai", ProviderId::Zed);
-    map.insert("llm-proxy", ProviderId::LLMProxy);
     map
 }
 
@@ -602,55 +265,25 @@ mod tests {
     #[test]
     fn test_provider_id_all() {
         let all = ProviderId::all();
-        assert_eq!(all.len(), 54);
+        assert_eq!(all.len(), 6);
         assert!(all.contains(&ProviderId::Claude));
         assert!(all.contains(&ProviderId::Codex));
-        assert!(all.contains(&ProviderId::Kimi));
-        assert!(all.contains(&ProviderId::KimiK2));
-        assert!(all.contains(&ProviderId::Amp));
-        assert!(all.contains(&ProviderId::AzureOpenAI));
-        assert!(all.contains(&ProviderId::T3Chat));
-        assert!(all.contains(&ProviderId::Synthetic));
-        assert!(all.contains(&ProviderId::JetBrains));
-        assert!(all.contains(&ProviderId::AlibabaTokenPlan));
-        assert!(all.contains(&ProviderId::NanoGPT));
-        assert!(all.contains(&ProviderId::Infini));
-        assert!(all.contains(&ProviderId::Bedrock));
-        assert!(all.contains(&ProviderId::Codebuff));
-        assert!(all.contains(&ProviderId::DeepSeek));
-        assert!(all.contains(&ProviderId::Windsurf));
-        assert!(all.contains(&ProviderId::Manus));
-        assert!(all.contains(&ProviderId::MiMo));
-        assert!(all.contains(&ProviderId::Doubao));
-        assert!(all.contains(&ProviderId::CommandCode));
-        assert!(all.contains(&ProviderId::Crof));
-        assert!(all.contains(&ProviderId::StepFun));
-        assert!(all.contains(&ProviderId::Venice));
-        assert!(all.contains(&ProviderId::OpenAIApi));
+        assert!(all.contains(&ProviderId::Gemini));
+        assert!(all.contains(&ProviderId::Zai));
         assert!(all.contains(&ProviderId::Grok));
-        assert!(all.contains(&ProviderId::ElevenLabs));
-        assert!(all.contains(&ProviderId::Deepgram));
-        assert!(all.contains(&ProviderId::Groq));
-        assert!(all.contains(&ProviderId::LLMProxy));
-        assert!(all.contains(&ProviderId::Chutes));
-        assert!(all.contains(&ProviderId::LiteLLM));
-        assert!(all.contains(&ProviderId::Poe));
-        assert!(all.contains(&ProviderId::Devin));
-        assert!(all.contains(&ProviderId::Zed));
+        assert!(all.contains(&ProviderId::Synthetic));
     }
 
     #[test]
     fn test_provider_id_cli_name() {
         assert_eq!(ProviderId::Claude.cli_name(), "claude");
         assert_eq!(ProviderId::Codex.cli_name(), "codex");
-        assert_eq!(ProviderId::Factory.cli_name(), "factory");
         assert_eq!(ProviderId::Zai.cli_name(), "zai");
     }
 
     #[test]
     fn test_provider_id_display_name() {
         assert_eq!(ProviderId::Claude.display_name(), "Claude");
-        assert_eq!(ProviderId::Factory.display_name(), "Factory");
         assert_eq!(ProviderId::Zai.display_name(), "z.ai");
     }
 
@@ -670,11 +303,7 @@ mod tests {
         );
         assert_eq!(ProviderId::from_cli_name("codex"), Some(ProviderId::Codex));
         assert_eq!(ProviderId::from_cli_name("openai"), Some(ProviderId::Codex));
-        assert_eq!(
-            ProviderId::from_cli_name("factory"),
-            Some(ProviderId::Factory)
-        );
-        assert_eq!(ProviderId::from_cli_name("zed"), Some(ProviderId::Zed));
+        assert_eq!(ProviderId::from_cli_name("grok"), Some(ProviderId::Grok));
         assert_eq!(ProviderId::from_cli_name("unknown"), None);
     }
 
@@ -730,44 +359,15 @@ mod tests {
     fn test_provider_id_cookie_domain() {
         // Cookie-based providers
         assert_eq!(ProviderId::Claude.cookie_domain(), Some("claude.ai"));
-        assert_eq!(ProviderId::Cursor.cookie_domain(), Some("cursor.com"));
-        assert_eq!(ProviderId::Factory.cookie_domain(), Some("app.factory.ai"));
         assert_eq!(ProviderId::Codex.cookie_domain(), Some("chatgpt.com"));
         assert_eq!(
             ProviderId::Gemini.cookie_domain(),
             Some("aistudio.google.com")
         );
-        assert_eq!(ProviderId::Kiro.cookie_domain(), Some("kiro.dev"));
-        assert_eq!(ProviderId::Kimi.cookie_domain(), Some("kimi.moonshot.cn"));
-        assert_eq!(ProviderId::OpenCode.cookie_domain(), Some("opencode.ai"));
+        assert_eq!(ProviderId::Grok.cookie_domain(), Some("grok.com"));
 
         // Token-based providers (no cookies)
-        assert_eq!(ProviderId::Copilot.cookie_domain(), None);
         assert_eq!(ProviderId::Zai.cookie_domain(), None);
-        assert_eq!(ProviderId::VertexAI.cookie_domain(), None);
-        assert_eq!(ProviderId::JetBrains.cookie_domain(), None);
-    }
-
-    #[test]
-    fn test_provider_id_alibaba() {
-        assert_eq!(ProviderId::Alibaba.cli_name(), "alibaba");
-        assert_eq!(ProviderId::Alibaba.display_name(), "Alibaba");
-        assert_eq!(
-            ProviderId::Alibaba.cookie_domain(),
-            Some("modelstudio.console.alibabacloud.com")
-        );
-        assert_eq!(
-            ProviderId::from_cli_name("alibaba"),
-            Some(ProviderId::Alibaba)
-        );
-        assert_eq!(
-            ProviderId::from_cli_name("tongyi"),
-            Some(ProviderId::Alibaba)
-        );
-        assert_eq!(
-            ProviderId::from_cli_name("qianwen"),
-            Some(ProviderId::Alibaba)
-        );
-        assert_eq!(ProviderId::from_cli_name("qwen"), Some(ProviderId::Alibaba));
+        assert_eq!(ProviderId::Synthetic.cookie_domain(), None);
     }
 }

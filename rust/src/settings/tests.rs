@@ -220,33 +220,12 @@ fn test_settings_get_all_providers_status() {
 #[test]
 fn test_api_key_provider_catalog_includes_token_providers() {
     let providers = get_api_key_providers();
-    for id in [
-        ProviderId::Kilo,
-        ProviderId::Bedrock,
-        ProviderId::Codebuff,
-        ProviderId::DeepSeek,
-        ProviderId::ElevenLabs,
-        ProviderId::Deepgram,
-        ProviderId::Grok,
-        ProviderId::Groq,
-        ProviderId::LLMProxy,
-    ] {
+    for id in [ProviderId::Zai, ProviderId::Grok, ProviderId::Synthetic] {
         assert!(
             providers.iter().any(|provider| provider.id == id),
             "{id} should be configurable from the API Keys UI"
         );
     }
-}
-
-#[test]
-fn test_t3_chat_is_cookie_configured_not_api_key_configured() {
-    let providers = get_api_key_providers();
-    assert!(
-        !providers
-            .iter()
-            .any(|provider| provider.id == ProviderId::T3Chat),
-        "T3 Chat fetches usage from browser cookies or pasted cURL, not API keys"
-    );
 }
 
 #[test]
@@ -460,20 +439,12 @@ fn test_legacy_per_provider_fields_migrate_into_provider_configs() {
             "refresh_interval_secs": 300,
             "codex_cookie_source": "manual",
             "claude_cookie_source": "browser",
-            "cursor_cookie_source": "manual",
-            "alibaba_cookie_source": "manual",
-            "alibaba_cookie_header": "ali=PLACEHOLDER",
-            "alibaba_api_region": "cn",
             "zai_api_region": "cn",
-            "minimax_api_region": "cn",
-            "minimax_api_token": "TOK_PLACEHOLDER",
             "claude_usage_source": "ccusage",
             "codex_usage_source": "manual",
             "codex_openai_web_extras": false,
             "codex_historical_tracking": true,
-            "claude_avoid_keychain_prompts": true,
-            "opencode_workspace_id": "ws_placeholder",
-            "jetbrains_ide_base_path": "C:/JB"
+            "claude_avoid_keychain_prompts": true
         }"#;
 
     let settings: Settings = serde_json::from_str(legacy_json).unwrap();
@@ -481,20 +452,12 @@ fn test_legacy_per_provider_fields_migrate_into_provider_configs() {
     // Cookie sources
     assert_eq!(settings.cookie_source(ProviderId::Codex), "manual");
     assert_eq!(settings.cookie_source(ProviderId::Claude), "browser");
-    assert_eq!(settings.cookie_source(ProviderId::Cursor), "manual");
-    assert_eq!(settings.cookie_source(ProviderId::Alibaba), "manual");
     // Untouched providers fall through to the default "manual" to avoid
     // background browser-cookie reads unless the user opts into Automatic.
-    assert_eq!(settings.cookie_source(ProviderId::Amp), "manual");
+    assert_eq!(settings.cookie_source(ProviderId::Grok), "manual");
 
-    // Manual cookie headers + api regions
-    assert_eq!(
-        settings.manual_cookie_header(ProviderId::Alibaba),
-        "ali=PLACEHOLDER"
-    );
-    assert_eq!(settings.api_region(ProviderId::Alibaba), "cn");
+    // API regions
     assert_eq!(settings.api_region(ProviderId::Zai), "cn");
-    assert_eq!(settings.api_region(ProviderId::MiniMax), "cn");
 
     // Usage sources
     assert_eq!(settings.usage_source(ProviderId::Claude), "ccusage");
@@ -507,17 +470,9 @@ fn test_legacy_per_provider_fields_migrate_into_provider_configs() {
     // Claude per-provider boolean
     assert!(settings.avoid_keychain_prompts(ProviderId::Claude));
 
-    // Misc per-provider strings
-    assert_eq!(
-        settings.workspace_id(ProviderId::OpenCode),
-        "ws_placeholder"
-    );
-    assert_eq!(settings.api_token(ProviderId::MiniMax), "TOK_PLACEHOLDER");
-    assert_eq!(settings.ide_base_path(ProviderId::JetBrains), "C:/JB");
-
     // Legacy field-name aliases agree with typed accessors.
     assert_eq!(settings.codex_cookie_source(), "manual");
-    assert_eq!(settings.alibaba_api_region(), "cn");
+    assert_eq!(settings.zai_api_region(), "cn");
     assert!(settings.codex_historical_tracking());
     assert!(!settings.codex_openai_web_extras());
     assert!(settings.claude_avoid_keychain_prompts());
@@ -532,12 +487,9 @@ fn test_provider_configs_roundtrip() {
     settings.set_cookie_source(ProviderId::Codex, "manual");
     settings.set_cookie_source(ProviderId::Claude, "browser");
     settings.set_usage_source(ProviderId::Claude, "ccusage");
-    settings.set_api_region(ProviderId::Alibaba, "cn");
     settings.set_api_region(ProviderId::Zai, "cn");
-    settings.set_manual_cookie_header(ProviderId::Amp, "amp=PLACEHOLDER");
-    settings.set_api_token(ProviderId::MiniMax, "TOK_PLACEHOLDER");
-    settings.set_workspace_id(ProviderId::OpenCode, "ws_placeholder");
-    settings.set_ide_base_path(ProviderId::JetBrains, "C:/JB");
+    settings.set_manual_cookie_header(ProviderId::Grok, "grok=PLACEHOLDER");
+    settings.set_workspace_id(ProviderId::Gemini, "ws_placeholder");
     settings.set_openai_web_extras(ProviderId::Codex, false);
     settings.set_historical_tracking(ProviderId::Codex, true);
     settings.set_avoid_keychain_prompts(ProviderId::Claude, true);
@@ -545,7 +497,7 @@ fn test_provider_configs_roundtrip() {
     let json = serde_json::to_string(&settings).unwrap();
     // The legacy flat fields must NOT appear in serialized output.
     assert!(!json.contains("\"codex_cookie_source\""), "json: {json}");
-    assert!(!json.contains("\"alibaba_api_region\""), "json: {json}");
+    assert!(!json.contains("\"zai_api_region\""), "json: {json}");
     assert!(
         !json.contains("\"claude_avoid_keychain_prompts\""),
         "json: {json}"
@@ -556,15 +508,12 @@ fn test_provider_configs_roundtrip() {
     assert_eq!(loaded.cookie_source(ProviderId::Codex), "manual");
     assert_eq!(loaded.cookie_source(ProviderId::Claude), "browser");
     assert_eq!(loaded.usage_source(ProviderId::Claude), "ccusage");
-    assert_eq!(loaded.api_region(ProviderId::Alibaba), "cn");
     assert_eq!(loaded.api_region(ProviderId::Zai), "cn");
     assert_eq!(
-        loaded.manual_cookie_header(ProviderId::Amp),
-        "amp=PLACEHOLDER"
+        loaded.manual_cookie_header(ProviderId::Grok),
+        "grok=PLACEHOLDER"
     );
-    assert_eq!(loaded.api_token(ProviderId::MiniMax), "TOK_PLACEHOLDER");
-    assert_eq!(loaded.workspace_id(ProviderId::OpenCode), "ws_placeholder");
-    assert_eq!(loaded.ide_base_path(ProviderId::JetBrains), "C:/JB");
+    assert_eq!(loaded.workspace_id(ProviderId::Gemini), "ws_placeholder");
     assert!(!loaded.openai_web_extras(ProviderId::Codex));
     assert!(loaded.historical_tracking(ProviderId::Codex));
     assert!(loaded.avoid_keychain_prompts(ProviderId::Claude));
@@ -583,21 +532,17 @@ fn test_new_format_provider_configs_only() {
             "refresh_interval_secs": 300,
             "provider_configs": {
                 "codex": { "cookie_source": "manual", "openai_web_extras": false },
-                "alibaba": { "api_region": "cn", "manual_cookie_header": "ali=PLACEHOLDER" }
+                "zai": { "api_region": "cn" }
             }
         }"#;
 
     let settings: Settings = serde_json::from_str(json).unwrap();
     assert_eq!(settings.cookie_source(ProviderId::Codex), "manual");
     assert!(!settings.openai_web_extras(ProviderId::Codex));
-    assert_eq!(settings.api_region(ProviderId::Alibaba), "cn");
-    assert_eq!(
-        settings.manual_cookie_header(ProviderId::Alibaba),
-        "ali=PLACEHOLDER"
-    );
+    assert_eq!(settings.api_region(ProviderId::Zai), "cn");
     // Untouched providers still get their defaults.
     assert_eq!(settings.cookie_source(ProviderId::Claude), "manual");
-    assert_eq!(settings.api_region(ProviderId::Zai), "global");
+    assert_eq!(settings.api_region(ProviderId::Grok), "");
 }
 
 /// Default `Settings` should serialize WITHOUT a `provider_configs`
@@ -618,9 +563,9 @@ fn test_per_provider_defaults_applied() {
     let settings = Settings::default();
     assert_eq!(settings.cookie_source(ProviderId::Codex), "manual");
     assert_eq!(settings.usage_source(ProviderId::Codex), "auto");
-    assert_eq!(settings.api_region(ProviderId::Alibaba), "singapore");
     assert_eq!(settings.api_region(ProviderId::Zai), "global");
-    assert_eq!(settings.api_region(ProviderId::MiniMax), "global");
+    // Providers without an explicit region default to empty.
+    assert_eq!(settings.api_region(ProviderId::Grok), "");
     assert!(settings.openai_web_extras(ProviderId::Codex));
     assert!(!settings.historical_tracking(ProviderId::Codex));
     assert!(!settings.avoid_keychain_prompts(ProviderId::Claude));

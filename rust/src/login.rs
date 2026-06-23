@@ -91,21 +91,6 @@ where
     .await
 }
 
-/// Run Copilot/GitHub device flow login
-pub async fn run_copilot_login<F>(timeout_secs: u64, on_phase: F) -> LoginResult
-where
-    F: Fn(LoginPhase) + Send + 'static,
-{
-    run_cli_login(
-        "gh",
-        &["auth", "login", "-w"],
-        timeout_secs,
-        on_phase,
-        &["Logged in as", "Authentication complete"],
-    )
-    .await
-}
-
 /// Generic CLI login runner
 async fn run_cli_login<F>(
     binary: &str,

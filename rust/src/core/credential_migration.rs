@@ -65,26 +65,6 @@ pub fn items_to_migrate() -> Vec<MigrationItem> {
         MigrationItem::new("CodexBar")
             .with_account("claude-cookie")
             .with_legacy("com.steipete.CodexBar"),
-        // Cursor credentials
-        MigrationItem::new("CodexBar")
-            .with_account("cursor-cookie")
-            .with_legacy("com.steipete.CodexBar"),
-        // Factory/Windsurf credentials
-        MigrationItem::new("CodexBar")
-            .with_account("factory-cookie")
-            .with_legacy("com.steipete.CodexBar"),
-        // MiniMax credentials
-        MigrationItem::new("CodexBar")
-            .with_account("minimax-cookie")
-            .with_legacy("com.steipete.CodexBar"),
-        // Augment credentials
-        MigrationItem::new("CodexBar")
-            .with_account("augment-cookie")
-            .with_legacy("com.steipete.CodexBar"),
-        // Copilot API token
-        MigrationItem::new("CodexBar")
-            .with_account("copilot-api-token")
-            .with_legacy("com.steipete.CodexBar"),
         // Zai API token
         MigrationItem::new("CodexBar")
             .with_account("zai-api-token")
@@ -311,50 +291,10 @@ pub fn service_name_for_provider(_provider: ProviderId) -> &'static str {
 const PROVIDER_ACCOUNT_NAMES: &[(ProviderId, &str)] = &[
     (ProviderId::Codex, "codex-cookie"),
     (ProviderId::Claude, "claude-cookie"),
-    (ProviderId::Cursor, "cursor-cookie"),
-    (ProviderId::Factory, "factory-cookie"),
-    (ProviderId::MiniMax, "minimax-cookie"),
-    (ProviderId::Augment, "augment-cookie"),
-    (ProviderId::Copilot, "copilot-api-token"),
-    (ProviderId::Zai, "zai-api-token"),
-    (ProviderId::OpenCode, "opencode-cookie"),
     (ProviderId::Gemini, "gemini-cookie"),
-    (ProviderId::Antigravity, "antigravity-cookie"),
-    (ProviderId::Kiro, "kiro-cookie"),
-    (ProviderId::VertexAI, "vertexai-token"),
-    (ProviderId::Kimi, "kimi-cookie"),
-    (ProviderId::KimiK2, "kimik2-cookie"),
-    (ProviderId::Amp, "amp-cookie"),
-    (ProviderId::Synthetic, "synthetic-cookie"),
-    (ProviderId::JetBrains, "jetbrains-token"),
-    (ProviderId::Alibaba, "alibaba-cookie"),
-    (ProviderId::Warp, "warp-token"),
-    (ProviderId::Ollama, "ollama-cookie"),
-    (ProviderId::OpenRouter, "openrouter-token"),
-    (ProviderId::NanoGPT, "nanogpt-api-token"),
-    (ProviderId::Infini, "infini-api-token"),
-    (ProviderId::Perplexity, "perplexity-cookie"),
-    (ProviderId::Abacus, "abacus-cookie"),
-    (ProviderId::Mistral, "mistral-cookie"),
-    (ProviderId::OpenCodeGo, "opencodego-cookie"),
-    (ProviderId::Kilo, "kilo-api-token"),
-    (ProviderId::Bedrock, "bedrock-aws-credentials"),
-    (ProviderId::Codebuff, "codebuff-api-token"),
-    (ProviderId::DeepSeek, "deepseek-api-token"),
-    (ProviderId::Windsurf, "windsurf-local-cache"),
-    (ProviderId::Manus, "manus-cookie"),
-    (ProviderId::MiMo, "mimo-cookie"),
-    (ProviderId::Doubao, "doubao-api-token"),
-    (ProviderId::CommandCode, "commandcode-cookie"),
-    (ProviderId::Crof, "crof-api-token"),
-    (ProviderId::StepFun, "stepfun-token"),
-    (ProviderId::Venice, "venice-api-token"),
-    (ProviderId::OpenAIApi, "openaiapi-token"),
+    (ProviderId::Zai, "zai-api-token"),
     (ProviderId::Grok, "grok-cookie"),
-    (ProviderId::ElevenLabs, "elevenlabs-api-token"),
-    (ProviderId::Deepgram, "deepgram-api-token"),
-    (ProviderId::Groq, "groq-api-token"),
-    (ProviderId::LLMProxy, "llmproxy-api-token"),
+    (ProviderId::Synthetic, "synthetic-cookie"),
 ];
 
 /// Get the account name for a provider's credentials
@@ -415,10 +355,7 @@ mod tests {
             account_name_for_provider(ProviderId::Claude),
             "claude-cookie"
         );
-        assert_eq!(
-            account_name_for_provider(ProviderId::Copilot),
-            "copilot-api-token"
-        );
+        assert_eq!(account_name_for_provider(ProviderId::Zai), "zai-api-token");
     }
 
     #[test]
