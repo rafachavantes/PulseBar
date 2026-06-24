@@ -645,7 +645,7 @@ dependencies = [
  "clap",
  "dirs",
  "futures",
- "global-hotkey",
+ "global-hotkey 0.8.0",
  "image",
  "keyring",
  "mockito",
@@ -1744,6 +1744,23 @@ dependencies = [
  "objc2-app-kit",
  "once_cell",
  "serde",
+ "thiserror 2.0.18",
+ "windows-sys 0.59.0",
+ "x11rb",
+ "xkeysym",
+]
+
+[[package]]
+name = "global-hotkey"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c386b0a4a70cb2d39fffd74480f985b6f0bfbcb934b6a6b6b7e630e448f242e"
+dependencies = [
+ "crossbeam-channel",
+ "keyboard-types",
+ "objc2",
+ "objc2-app-kit",
+ "once_cell",
  "thiserror 2.0.18",
  "windows-sys 0.59.0",
  "x11rb",
@@ -4664,7 +4681,7 @@ version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "424af23c7e88d05e4a1a6fc2c7be077912f8c76bd7900fd50aa2b7cbf5a2c405"
 dependencies = [
- "global-hotkey",
+ "global-hotkey 0.7.0",
  "log",
  "serde",
  "serde_json",
