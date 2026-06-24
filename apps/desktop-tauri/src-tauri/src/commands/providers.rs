@@ -30,8 +30,6 @@ pub(crate) fn build_fetch_context(
     let active_token_api_key = active_token_env.and_then(|env| env.values().next().cloned());
     let usage_source = SourceMode::parse(settings.usage_source(id)).unwrap_or_default();
     let api_key = stored_api_key.or(active_token_api_key);
-    let has_kimi_code_api_key =
-        id == ProviderId::Kimi && api_key.as_deref().is_some_and(|key| !key.trim().is_empty());
 
     let (source_mode, cookie_header) = if id.cookie_domain().is_none() {
         let source_mode = if active_token_env.is_some() {
@@ -46,15 +44,10 @@ pub(crate) fn build_fetch_context(
             "off" if id == ProviderId::Claude && usage_source != SourceMode::Cli => {
                 (SourceMode::OAuth, None)
             }
-            "off" if has_kimi_code_api_key && usage_source == SourceMode::Auto => {
-                (SourceMode::Auto, None)
-            }
             "off" => (SourceMode::Cli, None),
             "manual" => {
                 let cookie_header = active_token_cookie.or(stored_cookie);
-                let source_mode = if has_kimi_code_api_key && usage_source == SourceMode::Auto {
-                    SourceMode::Auto
-                } else if cookie_header.is_some() {
+                let source_mode = if cookie_header.is_some() {
                     SourceMode::Web
                 } else if id == ProviderId::Claude && usage_source != SourceMode::Cli {
                     SourceMode::OAuth
@@ -93,21 +86,7 @@ pub(crate) fn build_fetch_context(
     }
 }
 
-pub(crate) fn provider_cookie_domain(id: ProviderId, settings: &Settings) -> Option<&'static str> {
-    if id == ProviderId::MiniMax {
-        return Some(
-            codexbar::providers::MiniMaxProvider::cookie_domain_for_region(Some(
-                settings.api_region(id),
-            )),
-        );
-    }
-    if id == ProviderId::Alibaba {
-        return Some(
-            codexbar::providers::AlibabaProvider::cookie_domain_for_region(Some(
-                settings.api_region(id),
-            )),
-        );
-    }
+pub(crate) fn provider_cookie_domain(id: ProviderId, _settings: &Settings) -> Option<&'static str> {
     id.cookie_domain()
 }
 
@@ -117,7 +96,7 @@ const MAX_CONTEXT_FETCH_TIMEOUT: std::time::Duration = std::time::Duration::from
 
 pub(crate) fn provider_fetch_timeout(id: ProviderId, ctx: &FetchContext) -> std::time::Duration {
     let provider_timeout = match id {
-        ProviderId::Claude | ProviderId::Codex | ProviderId::Copilot => SLOW_PROVIDER_FETCH_TIMEOUT,
+        ProviderId::Claude | ProviderId::Codex => SLOW_PROVIDER_FETCH_TIMEOUT,
         _ => DEFAULT_PROVIDER_FETCH_TIMEOUT,
     };
     let context_timeout = std::time::Duration::from_secs(ctx.web_timeout.saturating_add(5));

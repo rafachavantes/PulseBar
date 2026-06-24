@@ -598,27 +598,12 @@ fn automatic_metric_percent(
     provider: Option<ProviderId>,
 ) -> Option<f64> {
     match provider {
-        Some(ProviderId::Cursor) => max_metric_percent([
-            Some(snapshot.primary.used_percent),
-            snapshot.secondary.as_ref().map(|w| w.used_percent),
-            snapshot.tertiary.as_ref().map(|w| w.used_percent),
-        ]),
         Some(ProviderId::Zai) => max_metric_percent([
             Some(snapshot.primary.used_percent),
             snapshot.tertiary.as_ref().map(|w| w.used_percent),
             None,
         ])
         .or_else(|| snapshot.secondary.as_ref().map(|w| w.used_percent)),
-        Some(ProviderId::Factory) | Some(ProviderId::Kimi) => snapshot
-            .secondary
-            .as_ref()
-            .map(|w| w.used_percent)
-            .or(Some(snapshot.primary.used_percent)),
-        Some(ProviderId::Copilot) => max_metric_percent([
-            Some(snapshot.primary.used_percent),
-            snapshot.secondary.as_ref().map(|w| w.used_percent),
-            None,
-        ]),
         _ => Some(snapshot.primary.used_percent),
     }
 }
@@ -1124,12 +1109,12 @@ mod tests {
     }
 
     #[test]
-    fn selected_tray_percent_uses_cursor_extra_usage_cost() {
+    fn selected_tray_percent_uses_claude_extra_usage_cost() {
         let mut settings = Settings::default();
-        settings.set_provider_metric(ProviderId::Cursor, MetricPreference::ExtraUsage);
+        settings.set_provider_metric(ProviderId::Claude, MetricPreference::ExtraUsage);
         let snapshot = fake_snapshot_with(
-            "cursor",
-            "Cursor",
+            "claude",
+            "Claude",
             10.0,
             Some(20.0),
             Some(72.0),
@@ -1148,10 +1133,10 @@ mod tests {
             show_as_used: false,
             ..Settings::default()
         };
-        settings.set_provider_metric(ProviderId::Cursor, MetricPreference::ExtraUsage);
+        settings.set_provider_metric(ProviderId::Claude, MetricPreference::ExtraUsage);
         let snapshot = fake_snapshot_with(
-            "cursor",
-            "Cursor",
+            "claude",
+            "Claude",
             10.0,
             Some(20.0),
             Some(72.0),
@@ -1167,8 +1152,8 @@ mod tests {
     #[test]
     fn selected_tray_percent_falls_back_when_extra_usage_missing() {
         let mut settings = Settings::default();
-        settings.set_provider_metric(ProviderId::Cursor, MetricPreference::ExtraUsage);
-        let snapshot = fake_snapshot_with("cursor", "Cursor", 10.0, Some(72.0), None, None);
+        settings.set_provider_metric(ProviderId::Claude, MetricPreference::ExtraUsage);
+        let snapshot = fake_snapshot_with("claude", "Claude", 72.0, Some(10.0), None, None);
 
         let (primary, _) = selected_tray_percents(&snapshot, &settings);
 

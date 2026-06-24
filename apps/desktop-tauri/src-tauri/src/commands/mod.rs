@@ -7,7 +7,6 @@ use codexbar::core::{
     instantiate_provider,
 };
 use codexbar::locale;
-use codexbar::providers::copilot::{CopilotApi, device_flow::CopilotDeviceFlow};
 use codexbar::secure_file::{self, SecureFileStatus};
 use codexbar::settings::{
     ApiKeys, Language, ManualCookies, MetricPreference, Settings, ThemePreference, TrayIconMode,

@@ -48,15 +48,9 @@ pub fn import_browser_cookies(
     // Resolve the provider to get its cookie domain.
     let pid = parse_provider_arg(&provider_id)?;
 
-    let settings = Settings::load();
-    let domain = if pid == codexbar::core::ProviderId::MiniMax {
-        codexbar::providers::MiniMaxProvider::cookie_domain_for_region(Some(
-            settings.api_region(pid),
-        ))
-    } else {
-        pid.cookie_domain()
-            .ok_or_else(|| format!("Provider '{provider_id}' does not use cookie authentication"))?
-    };
+    let domain = pid
+        .cookie_domain()
+        .ok_or_else(|| format!("Provider '{provider_id}' does not use cookie authentication"))?;
 
     // Find the requested browser.
     let browsers = BrowserDetector::detect_all();

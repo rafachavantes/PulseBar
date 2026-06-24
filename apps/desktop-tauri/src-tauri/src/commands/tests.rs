@@ -116,10 +116,6 @@ fn bootstrap_contract_lists_phase4_commands() {
         "set_provider_region",
         "get_provider_region",
         "get_gemini_cli_signed_in",
-        "get_vertexai_status",
-        "list_jetbrains_detected_ides",
-        "set_jetbrains_ide_path",
-        "get_kiro_status",
         "register_global_shortcut",
         "unregister_global_shortcut",
         "is_remote_session",
@@ -169,7 +165,7 @@ fn command_inputs_reject_invalid_provider_ids_before_storage_writes() {
 
 #[test]
 fn command_inputs_reject_multiline_secrets() {
-    assert!(super::set_api_key("openrouter".into(), "sk-test\nnext".into(), None).is_err());
+    assert!(super::set_api_key("grok".into(), "sk-test\nnext".into(), None).is_err());
     assert!(super::set_manual_cookie("codex".into(), "a=b\nc=d".into()).is_err());
 }
 
@@ -309,35 +305,10 @@ fn provider_cookie_source_lookup_roundtrips_known_providers() {
 #[test]
 fn provider_region_lookup_roundtrips_known_providers() {
     let mut s = Settings::default();
-    super::provider_region_set(&mut s, "alibaba", "china".to_string()).unwrap();
-    assert_eq!(
-        provider_region_lookup(&s, "alibaba").as_deref(),
-        Some("china")
-    );
+    super::provider_region_set(&mut s, "zai", "china".to_string()).unwrap();
+    assert_eq!(provider_region_lookup(&s, "zai").as_deref(), Some("china"));
     // Non-regional providers return None.
     assert!(provider_region_lookup(&s, "claude").is_none());
-}
-
-#[test]
-fn minimax_region_lookup_normalizes_legacy_china_value() {
-    let mut s = Settings::default();
-    super::provider_region_set(&mut s, "minimax", "china".to_string()).unwrap();
-    assert_eq!(provider_region_lookup(&s, "minimax").as_deref(), Some("cn"));
-}
-
-#[test]
-fn minimax_cookie_domain_follows_selected_region() {
-    let mut s = Settings::default();
-    assert_eq!(
-        super::provider_cookie_domain(ProviderId::MiniMax, &s),
-        Some("platform.minimax.io")
-    );
-
-    s.set_api_region(ProviderId::MiniMax, "cn");
-    assert_eq!(
-        super::provider_cookie_domain(ProviderId::MiniMax, &s),
-        Some("platform.minimaxi.com")
-    );
 }
 
 #[test]
@@ -355,7 +326,7 @@ fn fetch_context_defaults_to_manual_cookies_without_browser_import() {
     let token_accounts = HashMap::new();
 
     let ctx = super::build_fetch_context(
-        ProviderId::Cursor,
+        ProviderId::Gemini,
         &settings,
         &cookies,
         &api_keys,
@@ -409,12 +380,12 @@ fn fetch_context_claude_explicit_cli_source_still_uses_cli() {
 fn fetch_context_manual_cookie_uses_web_without_browser_import() {
     let settings = Settings::default();
     let mut cookies = ManualCookies::default();
-    cookies.set("cursor", "session=abc123");
+    cookies.set("gemini", "session=abc123");
     let api_keys = ApiKeys::default();
     let token_accounts = HashMap::new();
 
     let ctx = super::build_fetch_context(
-        ProviderId::Cursor,
+        ProviderId::Gemini,
         &settings,
         &cookies,
         &api_keys,
@@ -430,11 +401,11 @@ fn fetch_context_api_key_provider_uses_auto_without_cookie_import() {
     let settings = Settings::default();
     let cookies = ManualCookies::default();
     let mut api_keys = ApiKeys::default();
-    api_keys.set("deepseek", "sk-test", None);
+    api_keys.set("zai", "sk-test", None);
     let token_accounts = HashMap::new();
 
     let ctx = super::build_fetch_context(
-        ProviderId::DeepSeek,
+        ProviderId::Zai,
         &settings,
         &cookies,
         &api_keys,
@@ -447,68 +418,22 @@ fn fetch_context_api_key_provider_uses_auto_without_cookie_import() {
 }
 
 #[test]
-fn fetch_context_kimi_api_key_preserves_auto_for_web_fallback() {
-    let settings = Settings::default();
-    let cookies = ManualCookies::default();
-    let mut api_keys = ApiKeys::default();
-    api_keys.set("kimi", "sk-kimi-test", None);
-    let token_accounts = HashMap::new();
-
-    let ctx = super::build_fetch_context(
-        ProviderId::Kimi,
-        &settings,
-        &cookies,
-        &api_keys,
-        &token_accounts,
-    );
-
-    assert_eq!(ctx.source_mode, SourceMode::Auto);
-    assert!(ctx.manual_cookie_header.is_none());
-    assert_eq!(ctx.api_key.as_deref(), Some("sk-kimi-test"));
-}
-
-#[test]
-fn fetch_context_includes_minimax_region() {
+fn fetch_context_includes_zai_region() {
     let mut settings = Settings::default();
-    settings.set_api_region(ProviderId::MiniMax, "cn");
+    settings.set_api_region(ProviderId::Zai, "china");
     let cookies = ManualCookies::default();
     let api_keys = ApiKeys::default();
     let token_accounts = HashMap::new();
 
     let ctx = super::build_fetch_context(
-        ProviderId::MiniMax,
+        ProviderId::Zai,
         &settings,
         &cookies,
         &api_keys,
         &token_accounts,
     );
 
-    assert_eq!(ctx.api_region.as_deref(), Some("cn"));
-}
-
-#[test]
-fn fetch_context_token_account_uses_web_cookie_header() {
-    let settings = Settings::default();
-    let cookies = ManualCookies::default();
-    let api_keys = ApiKeys::default();
-    let mut token_accounts = HashMap::new();
-    let mut data = ProviderAccountData::new();
-    data.add_account(TokenAccount::new("Work", "abc123"));
-    token_accounts.insert(ProviderId::Ollama, data);
-
-    let ctx = super::build_fetch_context(
-        ProviderId::Ollama,
-        &settings,
-        &cookies,
-        &api_keys,
-        &token_accounts,
-    );
-
-    assert_eq!(ctx.source_mode, SourceMode::Web);
-    assert_eq!(
-        ctx.manual_cookie_header.as_deref(),
-        Some("__Secure-session=abc123")
-    );
+    assert_eq!(ctx.api_region.as_deref(), Some("china"));
 }
 
 #[test]
@@ -535,17 +460,17 @@ fn fetch_context_claude_oauth_token_account_uses_oauth() {
 }
 
 #[test]
-fn fetch_context_copilot_token_account_uses_oauth_api_key() {
+fn fetch_context_zai_token_account_uses_oauth_api_key() {
     let settings = Settings::default();
     let cookies = ManualCookies::default();
     let api_keys = ApiKeys::default();
     let mut token_accounts = HashMap::new();
     let mut data = ProviderAccountData::new();
-    data.add_account(TokenAccount::new("GitHub", "gho_testtoken"));
-    token_accounts.insert(ProviderId::Copilot, data);
+    data.add_account(TokenAccount::new("Zai", "zed-test-token"));
+    token_accounts.insert(ProviderId::Zai, data);
 
     let ctx = super::build_fetch_context(
-        ProviderId::Copilot,
+        ProviderId::Zai,
         &settings,
         &cookies,
         &api_keys,
@@ -554,7 +479,7 @@ fn fetch_context_copilot_token_account_uses_oauth_api_key() {
 
     assert_eq!(ctx.source_mode, SourceMode::OAuth);
     assert!(ctx.manual_cookie_header.is_none());
-    assert_eq!(ctx.api_key.as_deref(), Some("gho_testtoken"));
+    assert_eq!(ctx.api_key.as_deref(), Some("zed-test-token"));
 }
 
 #[test]
@@ -587,15 +512,15 @@ fn fetch_context_claude_session_token_account_uses_web_cookie() {
 fn fetch_context_token_account_takes_precedence_over_manual_cookie() {
     let settings = Settings::default();
     let mut cookies = ManualCookies::default();
-    cookies.set("cursor", "manual=old");
+    cookies.set("claude", "manual=old");
     let api_keys = ApiKeys::default();
     let mut token_accounts = HashMap::new();
     let mut data = ProviderAccountData::new();
-    data.add_account(TokenAccount::new("Work", "WorkosCursorSessionToken=new"));
-    token_accounts.insert(ProviderId::Cursor, data);
+    data.add_account(TokenAccount::new("Work", "new"));
+    token_accounts.insert(ProviderId::Claude, data);
 
     let ctx = super::build_fetch_context(
-        ProviderId::Cursor,
+        ProviderId::Claude,
         &settings,
         &cookies,
         &api_keys,
@@ -605,7 +530,7 @@ fn fetch_context_token_account_takes_precedence_over_manual_cookie() {
     assert_eq!(ctx.source_mode, SourceMode::Web);
     assert_eq!(
         ctx.manual_cookie_header.as_deref(),
-        Some("WorkosCursorSessionToken=new")
+        Some("sessionKey=new")
     );
 }
 
@@ -750,11 +675,7 @@ fn provider_fetch_timeout_allows_slower_authenticated_providers() {
         std::time::Duration::from_secs(75)
     );
     assert_eq!(
-        super::provider_fetch_timeout(ProviderId::Copilot, &ctx),
-        std::time::Duration::from_secs(75)
-    );
-    assert_eq!(
-        super::provider_fetch_timeout(ProviderId::DeepSeek, &ctx),
+        super::provider_fetch_timeout(ProviderId::Gemini, &ctx),
         std::time::Duration::from_secs(35)
     );
 }
@@ -766,7 +687,7 @@ fn provider_fetch_timeout_respects_context_web_timeout_with_cap() {
         ..FetchContext::default()
     };
     assert_eq!(
-        super::provider_fetch_timeout(ProviderId::T3Chat, &ctx),
+        super::provider_fetch_timeout(ProviderId::Gemini, &ctx),
         std::time::Duration::from_secs(65)
     );
 
@@ -775,7 +696,7 @@ fn provider_fetch_timeout_respects_context_web_timeout_with_cap() {
         ..FetchContext::default()
     };
     assert_eq!(
-        super::provider_fetch_timeout(ProviderId::AzureOpenAI, &ctx),
+        super::provider_fetch_timeout(ProviderId::Grok, &ctx),
         std::time::Duration::from_secs(65)
     );
 }
@@ -1005,24 +926,9 @@ fn cookie_options_empty_for_providers_without_picker() {
 
 #[test]
 fn region_options_for_regional_provider() {
-    let opts = super::region_options_for("alibaba");
+    let opts = super::region_options_for("zai");
     let values: Vec<_> = opts.iter().map(|o| o.value.as_str()).collect();
-    assert_eq!(values, vec!["singapore", "us", "germany", "hongkong", "cn"]);
-}
-
-#[test]
-fn minimax_region_options_match_upstream_hosts() {
-    let opts = super::region_options_for("minimax");
-    let values: Vec<_> = opts.iter().map(|o| o.value.as_str()).collect();
-    let labels: Vec<_> = opts.iter().map(|o| o.label.as_str()).collect();
-    assert_eq!(values, vec!["global", "cn"]);
-    assert_eq!(
-        labels,
-        vec![
-            "Global (platform.minimax.io)",
-            "China mainland (platform.minimaxi.com)"
-        ]
-    );
+    assert_eq!(values, vec!["global", "china"]);
 }
 
 #[test]

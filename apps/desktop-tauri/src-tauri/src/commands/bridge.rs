@@ -757,22 +757,6 @@ pub(crate) fn bridge_commands() -> Vec<BridgeCommandDescriptor> {
             description: "Detect whether the Gemini CLI is signed in locally.",
         },
         BridgeCommandDescriptor {
-            id: "get_vertexai_status",
-            description: "Detect VertexAI application default credentials.",
-        },
-        BridgeCommandDescriptor {
-            id: "list_jetbrains_detected_ides",
-            description: "List detected JetBrains/Google IDE config directories.",
-        },
-        BridgeCommandDescriptor {
-            id: "set_jetbrains_ide_path",
-            description: "Persist an explicit JetBrains IDE config path override.",
-        },
-        BridgeCommandDescriptor {
-            id: "get_kiro_status",
-            description: "Detect availability of the Kiro CLI.",
-        },
-        BridgeCommandDescriptor {
             id: "register_global_shortcut",
             description: "Register a global keyboard shortcut that emits `global-shortcut-triggered` events.",
         },

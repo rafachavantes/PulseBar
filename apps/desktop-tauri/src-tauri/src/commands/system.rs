@@ -269,15 +269,6 @@ pub fn quit_app(app: tauri::AppHandle) {
 }
 
 fn dashboard_url_for_provider(provider_id: &str) -> Option<String> {
-    if provider_id == ProviderId::MiniMax.cli_name() {
-        let settings = Settings::load();
-        return Some(
-            codexbar::providers::MiniMaxProvider::dashboard_url_for_region(Some(
-                settings.api_region(ProviderId::MiniMax),
-            )),
-        );
-    }
-
     if let Some(url) = codexbar::settings::get_api_key_providers()
         .into_iter()
         .find(|p| p.id.cli_name() == provider_id)
@@ -315,15 +306,11 @@ pub fn open_provider_status_page(provider_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn trigger_provider_login(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     provider_id: String,
 ) -> Result<(), String> {
     let id = parse_provider_arg(&provider_id)?;
     let provider_id = id.cli_name().to_string();
-
-    if id == ProviderId::Copilot {
-        return run_copilot_device_login(&app).await;
-    }
 
     // TODO(6b): replace fallthrough once LoginPhase events land. The login
     // runners live in `codexbar::login` but are async-oriented and tightly
@@ -335,68 +322,6 @@ pub async fn trigger_provider_login(
     Err(format!(
         "Login flow for '{provider_id}' is not yet wired through the Tauri shell"
     ))
-}
-
-async fn run_copilot_device_login(app: &tauri::AppHandle) -> Result<(), String> {
-    let flow = CopilotDeviceFlow::new();
-    let device = flow
-        .start_flow()
-        .await
-        .map_err(|e| format!("GitHub device login failed: {e}"))?;
-
-    open_url_in_browser(device.verification_url_to_open())?;
-
-    let token = flow
-        .wait_for_token(&device.device_code, device.interval, device.expires_in)
-        .await
-        .map_err(|e| format!("GitHub device login failed: {e}"))?;
-
-    let api = CopilotApi::new();
-    let identity = api.fetch_identity_with_token(&token, None).await.ok();
-    let plan = api
-        .fetch_usage_with_token(&token, None)
-        .await
-        .ok()
-        .and_then(|usage| usage.login_method);
-
-    let login = identity.as_ref().map(|identity| identity.login.clone());
-    let label = match (login.as_deref(), plan.as_deref()) {
-        (Some(login), Some(plan)) => format!("{login} ({plan})"),
-        (Some(login), None) => login.to_string(),
-        (None, Some(plan)) => plan.to_string(),
-        (None, None) => "GitHub Copilot".to_string(),
-    };
-
-    let store = TokenAccountStore::new();
-    let mut data = store
-        .load_provider(ProviderId::Copilot)
-        .map_err(|e| e.to_string())?;
-    let existing_index = login.as_deref().and_then(|login| {
-        data.accounts.iter().position(|account| {
-            account.label == login || account.label.starts_with(&format!("{login} ("))
-        })
-    });
-
-    if let Some(index) = existing_index {
-        data.accounts[index].token = token;
-        data.accounts[index].label = label;
-        data.set_active(index);
-    } else {
-        let mut account = TokenAccount::new(label, token);
-        account.mark_used();
-        data.add_account(account);
-        data.set_active(data.accounts.len().saturating_sub(1));
-    }
-
-    store
-        .save_provider(ProviderId::Copilot, &data)
-        .map_err(|e| e.to_string())?;
-
-    let _ = app.emit(
-        "provider-updated",
-        serde_json::json!({ "providerId": "copilot" }),
-    );
-    Ok(())
 }
 
 #[cfg(test)]
