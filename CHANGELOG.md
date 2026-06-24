@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.37.2-fork1 — Personal fork established
+
+Personal hard fork of Win-CodexBar v0.37.2.
+
+### Changed
+- Pruned provider set from 54 to 6: Codex, Claude, Gemini, z.ai, Grok, plus the
+  hidden `Synthetic` test/proof provider. Removed all code, assets, icons,
+  settings accessors, and fixtures for pruned providers.
+- Disabled the in-app update check (personal build does not phone home).
+- Rewrote README and updated `AGENTS.md` for the fork; added MIT attribution.
+
+### Verified (on Linux)
+- Backend `cargo test -p codexbar`: 240 tests pass; `cargo clippy` clean.
+- Frontend `pnpm build` + `pnpm test`: 99/99 pass.
+
+### Deferred
+- Tauri Windows shell compile/test (requires Windows).
+- Public distribution (signing, winget, releases).
+
+---
+
 ## [Windows] 0.33.2 - 2026-06-12
 
 ### Fixed

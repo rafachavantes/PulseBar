@@ -1,7 +1,14 @@
 //! Provider implementations
+//!
+//! `#![allow(dead_code)]` retained deliberately: removing it surfaces ~19
+//! dead-code items in kept modules — mostly an abandoned alternate z.ai parser
+//! in `zai/mcp_details.rs` (`ZaiQuotaLimitResponse` family) and shared helpers
+//! (`resolve_api_key`, `validated_https_url`) retained for future providers.
+//! NOTE: the live z.ai usage-read path (`zai/mod.rs::parse_quota_response`) is
+//! intact and correct — the dead structs are NOT the usage bug. Triaging these
+//! is deferred to a Phase 4 housekeeping pass.
 
 #![allow(dead_code)]
-
 pub mod claude;
 pub mod codex;
 pub mod gemini;

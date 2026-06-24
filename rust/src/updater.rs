@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::watch;
 
-const GITHUB_REPO: &str = "Finesssee/Win-CodexBar";
+const GITHUB_REPO: &str = "Finesssee/Win-CodexBar"; // upstream; personal fork does not auto-update (see check_for_updates_with_channel)
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// State of the update download process
@@ -88,7 +88,17 @@ pub async fn check_for_updates() -> Option<UpdateInfo> {
 ///
 /// When `channel` is `UpdateChannel::Beta`, includes pre-release versions.
 /// When `channel` is `UpdateChannel::Stable`, only considers stable releases.
-pub async fn check_for_updates_with_channel(channel: UpdateChannel) -> Option<UpdateInfo> {
+///
+/// **Personal-fork mode:** update checks are disabled. This build does not phone
+/// home to any upstream release feed. Re-enable by restoring the network check
+/// below and pointing `GITHUB_REPO` at the fork's own release feed when going
+/// public.
+pub async fn check_for_updates_with_channel(_channel: UpdateChannel) -> Option<UpdateInfo> {
+    None
+}
+
+#[allow(dead_code)]
+async fn check_for_updates_network(channel: UpdateChannel) -> Option<UpdateInfo> {
     let client = update_client()?;
     let response = client.get(release_url(channel)).send().await.ok()?;
     let release = parse_release_response(response, channel).await?;
