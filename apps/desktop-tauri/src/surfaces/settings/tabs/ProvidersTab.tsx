@@ -201,49 +201,11 @@ function providerSourceHintShort(
 ): string {
   const id = providerId.toLowerCase();
   switch (id) {
-    case "cursor":
-    case "factory":
-    case "droid":
-    case "kimi":
-    case "kimik2":
-    case "augment":
-    case "opencode":
-    case "amp":
-    case "ollama":
-    case "alibaba":
-    case "infini":
-    case "manus":
-    case "mimo":
-    case "commandcode":
-      return t("ProviderSourceWebShort");
     case "gemini":
-    case "antigravity":
-    case "jetbrains":
       return t("ProviderSourceCliShort");
-    case "copilot":
-      return t("ProviderSourceOauthShort");
     case "zai":
-    case "vertexai":
-    case "openrouter":
-    case "bedrock":
     case "synthetic":
-    case "nanogpt":
-    case "warp":
-    case "doubao":
-    case "crof":
-    case "stepfun":
-    case "venice":
-    case "openaiapi":
-    case "elevenlabs":
-    case "deepgram":
-    case "groq":
-    case "llmproxy":
       return t("ProviderSourceApiShort");
-    case "kiro":
-      return t("ProviderSourceKiroEnvShort");
-    case "claude":
-    case "codex":
-    case "minimax":
     default:
       return t("ProviderSourceAutoShort");
   }

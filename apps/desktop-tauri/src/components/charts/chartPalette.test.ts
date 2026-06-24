@@ -15,15 +15,15 @@ describe("chartPalette.providerColor", () => {
     );
   });
 
-  it("is case-insensitive and handles spaced aliases", () => {
-    expect(providerCostColor("CURSOR")).toBe(
-      "var(--chart-cursor, var(--chart-cost))",
+  it("is case-insensitive and handles dotted aliases", () => {
+    expect(providerCostColor("GROK")).toBe(
+      "var(--chart-grok, var(--chart-cost))",
     );
-    expect(providerCostColor("Kimi K2")).toBe(
-      "var(--chart-kimik2, var(--chart-cost))",
+    expect(providerCostColor("supergrok")).toBe(
+      "var(--chart-grok, var(--chart-cost))",
     );
-    expect(providerCostColor("Vertex AI")).toBe(
-      "var(--chart-vertexai, var(--chart-cost))",
+    expect(providerCostColor("z.ai")).toBe(
+      "var(--chart-zai, var(--chart-cost))",
     );
   });
 

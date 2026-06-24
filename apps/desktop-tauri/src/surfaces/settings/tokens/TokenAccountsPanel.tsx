@@ -6,7 +6,6 @@ import {
   getTokenAccounts,
   removeTokenAccount,
   setActiveTokenAccount,
-  triggerProviderLogin,
 } from "../../../lib/tauri";
 
 interface Props {
@@ -112,20 +111,6 @@ export function TokenAccountsPanel({ providerId, compact = false }: Props) {
     }
   };
 
-  const handleProviderLogin = async () => {
-    if (!providerId) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await triggerProviderLogin(providerId);
-      await load();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (!providerId) return null;
 
   const placeholder = data?.support.placeholder ?? "Paste token…";
@@ -198,15 +183,6 @@ export function TokenAccountsPanel({ providerId, compact = false }: Props) {
 
       {!compact && (
         <h3 className="settings-section__title">{t("SectionAddAccount")}</h3>
-      )}
-      {providerId === "copilot" && (
-        <button
-          className="credential-btn credential-btn--primary"
-          disabled={busy}
-          onClick={() => void handleProviderLogin()}
-        >
-          {t("TokenAccountGithubLoginButton")}
-        </button>
       )}
       <div className="credential-add-form token-accounts-add">
         <input

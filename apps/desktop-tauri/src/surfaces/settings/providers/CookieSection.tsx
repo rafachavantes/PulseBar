@@ -17,13 +17,7 @@ interface Props {
   cookieDomain: string | null;
 }
 
-function cookiePlaceholder(providerId: string): string {
-  if (providerId === "ollama") {
-    return "Paste the full Cookie header or just the __Secure-session value...";
-  }
-  if (providerId === "t3chat") {
-    return "Paste the Cookie header or full browser cURL request...";
-  }
+function cookiePlaceholder(_providerId: string): string {
   return "Paste cookie header value...";
 }
 

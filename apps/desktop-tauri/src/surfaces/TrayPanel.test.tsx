@@ -47,7 +47,6 @@ vi.mock("@tauri-apps/api/window", () => windowMocks);
 
 import TrayPanel from "./TrayPanel";
 import { LocaleProvider } from "../i18n/LocaleProvider";
-import { TEST_PROVIDER_CATALOG } from "../test/providerCatalog";
 import { buildBundle } from "../test/localeHarness";
 import type {
   BootstrapState,
@@ -55,6 +54,23 @@ import type {
   ProviderUsageSnapshot,
   SettingsSnapshot,
 } from "../types/bridge";
+
+// Synthetic large catalog for dense-grid layout tests. The real catalog is
+// pruned to 6 providers, but the tray grid still renders arbitrary counts.
+// Needs >32 entries to trigger the dense collapse path (see ProviderGrid).
+const LARGE_CATALOG: Array<[string, string]> = Array.from(
+  { length: 36 },
+  (_, i) => {
+    const names = [
+      "alpha", "bravo", "gamma", "delta", "echo", "foxtrot", "golf",
+      "hotel", "india", "juliet", "kilo", "lima", "mike", "november",
+      "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform",
+      "victor", "whiskey", "xray", "yankee", "zulu", "apple", "butter",
+      "cherry", "datil", "elder", "fig", "grape", "honey", "iris", "juniper",
+    ];
+    return [names[i], names[i]];
+  },
+);
 
 function rateWindow(used: number) {
   return {
@@ -359,7 +375,7 @@ describe("TrayPanel provider grid", () => {
   });
 
   it("collapses and expands the full provider catalog in the dense tray grid", async () => {
-    const providers = TEST_PROVIDER_CATALOG.map(([id, displayName], index) =>
+    const providers = LARGE_CATALOG.map(([id, displayName], index) =>
       provider(id, displayName, (index * 7) % 100),
     );
 
@@ -397,7 +413,7 @@ describe("TrayPanel provider grid", () => {
     expect(container.querySelectorAll(".menu-stack__item")).toHaveLength(
       providers.length,
     );
-    for (const [id, displayName] of TEST_PROVIDER_CATALOG) {
+    for (const [id, displayName] of LARGE_CATALOG) {
       expect(
         container.querySelector(`.provider-grid__item[aria-label="${displayName}"]`),
         id,
@@ -406,7 +422,7 @@ describe("TrayPanel provider grid", () => {
   });
 
   it("uses compact provider labels for huge catalogs without losing full accessible labels", async () => {
-    const providers = TEST_PROVIDER_CATALOG.slice(0, 36).map(
+    const providers = LARGE_CATALOG.map(
       ([id, displayName], index) => provider(id, displayName, (index * 7) % 100),
     );
 
@@ -425,17 +441,17 @@ describe("TrayPanel provider grid", () => {
 
     await waitFor(() => {
       expect(
-        container.querySelector('.provider-grid__item[aria-label="Copilot"]'),
+        container.querySelector('.provider-grid__item[aria-label="foxtrot"]'),
       ).not.toBeNull();
     });
 
-    const copilot = container.querySelector(
-      '.provider-grid__item[aria-label="Copilot"]',
+    const foxtrot = container.querySelector(
+      '.provider-grid__item[aria-label="foxtrot"]',
     );
-    expect(copilot).not.toBeNull();
-    expect(copilot?.getAttribute("aria-label")).toBe("Copilot");
-    expect(copilot?.querySelector(".provider-grid__label")?.textContent).toBe(
-      "Copi",
+    expect(foxtrot).not.toBeNull();
+    expect(foxtrot?.getAttribute("aria-label")).toBe("foxtrot");
+    expect(foxtrot?.querySelector(".provider-grid__label")?.textContent).toBe(
+      "foxt",
     );
   });
 
@@ -535,7 +551,7 @@ describe("TrayPanel provider grid", () => {
       setSize,
       close: vi.fn().mockResolvedValue(undefined),
     });
-    const denseProviders = TEST_PROVIDER_CATALOG.slice(0, 36).map(([id, displayName]) =>
+    const denseProviders = LARGE_CATALOG.map(([id, displayName]) =>
       provider(id, displayName),
     );
 

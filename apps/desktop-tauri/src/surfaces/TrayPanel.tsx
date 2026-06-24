@@ -30,23 +30,10 @@ import {
 
 /** Provider IDs that have a dashboard URL in the backend */
 const HAS_DASHBOARD = new Set([
-  "abacus", "alibaba", "alibabatokenplan", "amp", "augment",
-  "azureopenai", "bedrock", "claude", "codex", "codebuff",
-  "commandcode", "copilot", "crof", "cursor", "deepgram", "deepseek",
-  "doubao", "elevenlabs", "factory", "gemini", "grok", "groq",
-  "infini", "jetbrains", "kilo", "kimi", "kimik2", "kiro", "manus",
-  "mimo", "minimax", "mistral", "nanogpt", "ollama", "openaiapi",
-  "opencode", "opencodego", "openrouter", "perplexity", "stepfun",
-  "synthetic", "t3chat", "venice", "vertexai", "warp", "windsurf",
-  "zai",
+  "claude", "codex", "gemini", "grok", "synthetic", "zai",
 ]);
 /** Provider IDs that have a status page URL in the backend */
-const HAS_STATUS_PAGE = new Set([
-  "alibabatokenplan", "amp", "augment", "azureopenai", "bedrock",
-  "claude", "codex", "copilot", "deepgram", "deepseek", "elevenlabs",
-  "gemini", "grok", "groq", "kiro", "mistral", "openaiapi",
-  "openrouter", "vertexai", "windsurf",
-]);
+const HAS_STATUS_PAGE = new Set(["claude", "codex", "gemini", "grok"]);
 
 const TRAY_INITIAL_REFRESH_DELAY_MS = 250;
 const DENSE_OVERVIEW_THRESHOLD = 32;

@@ -40,7 +40,23 @@ vi.mock("@tauri-apps/api/window", () => windowMocks);
 import PopOutPanel from "./PopOutPanel";
 import { LocaleProvider } from "../i18n/LocaleProvider";
 import { buildBundle } from "../test/localeHarness";
-import { TEST_PROVIDER_CATALOG } from "../test/providerCatalog";
+
+// Synthetic large catalog for dense-grid layout tests. The real catalog is
+// pruned to 6 providers, but the popout grid still renders arbitrary counts.
+// Needs >32 entries to trigger the dense collapse path (see ProviderGrid).
+const LARGE_CATALOG: Array<[string, string]> = Array.from(
+  { length: 36 },
+  (_, i) => {
+    const names = [
+      "alpha", "bravo", "gamma", "delta", "echo", "foxtrot", "golf",
+      "hotel", "india", "juliet", "kilo", "lima", "mike", "november",
+      "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform",
+      "victor", "whiskey", "xray", "yankee", "zulu", "apple", "butter",
+      "cherry", "datil", "elder", "fig", "grape", "honey", "iris", "juniper",
+    ];
+    return [names[i], names[i]];
+  },
+);
 import type {
   BootstrapState,
   ProviderCatalogEntry,
@@ -226,7 +242,7 @@ describe("PopOutPanel", () => {
   });
 
   it("keeps the popout overview focused until the provider grid expands", async () => {
-    const providers = TEST_PROVIDER_CATALOG.map(([id, displayName], index) =>
+    const providers = LARGE_CATALOG.map(([id, displayName], index) =>
       provider(id, displayName, (index * 7) % 100),
     );
 

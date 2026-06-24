@@ -111,7 +111,7 @@ describe("ProvidersSidebar", () => {
       container.querySelectorAll(".providers-sidebar__name"),
       (node) => node.textContent,
     );
-    expect(names.slice(0, 3)).toEqual(["Claude", "Codex", "Cursor"]);
+    expect(names.slice(0, 3)).toEqual(["Claude", "Codex", "Gemini"]);
     expect(onReorder).toHaveBeenCalledWith([
       "claude",
       "codex",

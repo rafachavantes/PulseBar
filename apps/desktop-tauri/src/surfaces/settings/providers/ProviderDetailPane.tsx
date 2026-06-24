@@ -31,9 +31,6 @@ import { ChartsSection } from "./sections/charts/ChartsSection";
 import { CookieSourceSection } from "./sections/CookieSourceSection";
 import { RegionSection } from "./sections/RegionSection";
 import { GeminiCliCreds } from "./sections/credentials/GeminiCliCreds";
-import { VertexAiCreds } from "./sections/credentials/VertexAiCreds";
-import { JetBrainsCreds } from "./sections/credentials/JetBrainsCreds";
-import { KiroCreds } from "./sections/credentials/KiroCreds";
 import { ClaudeCreds } from "./sections/credentials/ClaudeCreds";
 import { OpenAiExtras } from "./sections/credentials/OpenAiExtras";
 import { TokenAccountsPanel } from "../tokens/TokenAccountsPanel";
@@ -477,21 +474,9 @@ function CredentialsDispatcher({
   switch (providerId) {
     case "gemini":
       return <GeminiCliCreds providerId={providerId} t={t} />;
-    case "vertexai":
-      return <VertexAiCreds providerId={providerId} t={t} />;
-    case "jetbrains":
-      return <JetBrainsCreds t={t} />;
-    case "kiro":
-      return <KiroCreds t={t} />;
     case "claude":
       return <ClaudeCreds t={t} />;
     case "codex":
-      return <OpenAiExtras providerId={providerId} t={t} />;
-    case "openaiapi":
-      return <OpenAiExtras providerId={providerId} t={t} />;
-    case "litellm":
-    case "devin":
-    case "zed":
       return <OpenAiExtras providerId={providerId} t={t} />;
     default:
       return null;
