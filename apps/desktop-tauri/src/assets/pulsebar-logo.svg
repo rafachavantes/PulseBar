@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="PulseBar">
+  <defs>
+    <linearGradient id="pb-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E1712"/>
+      <stop offset="1" stop-color="#070B08"/>
+    </linearGradient>
+    <filter id="pb-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="url(#pb-bg)"/>
+  <rect x="3" y="3" width="250" height="250" rx="53" fill="none" stroke="#35E08A" stroke-opacity="0.18" stroke-width="2"/>
+  <path d="M20 130 H82 L96 130 L108 108 L118 130 L126 130 L132 46 L144 198 L154 130 L170 130 L182 116 L194 130 H236"
+        fill="none" stroke="#35E08A" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#pb-glow)"/>
+</svg>
