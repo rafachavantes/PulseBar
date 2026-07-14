@@ -1,0 +1,390 @@
+//! Provider trait - defines the interface all providers must implement
+
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use thiserror::Error;
+
+use super::ProviderFetchResult;
+
+/// Unique identifier for a provider
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProviderId {
+    Codex,
+    Claude,
+    Gemini,
+    Zai,
+    Grok,
+    OpenCodeGo,
+    Synthetic,
+}
+
+impl ProviderId {
+    /// Get all provider IDs
+    pub fn all() -> &'static [ProviderId] {
+        &[
+            ProviderId::Codex,
+            ProviderId::Claude,
+            ProviderId::Gemini,
+            ProviderId::Zai,
+            ProviderId::Grok,
+            ProviderId::OpenCodeGo,
+            ProviderId::Synthetic,
+        ]
+    }
+
+    /// Get the CLI name for this provider
+    pub fn cli_name(&self) -> &'static str {
+        match self {
+            ProviderId::Codex => "codex",
+            ProviderId::Claude => "claude",
+            ProviderId::Gemini => "gemini",
+            ProviderId::Zai => "zai",
+            ProviderId::Grok => "grok",
+            ProviderId::OpenCodeGo => "opencodego",
+            ProviderId::Synthetic => "synthetic",
+        }
+    }
+
+    /// Get the display name for this provider
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            ProviderId::Codex => "Codex",
+            ProviderId::Claude => "Claude",
+            ProviderId::Gemini => "Gemini",
+            ProviderId::Zai => "z.ai",
+            ProviderId::Grok => "Grok",
+            ProviderId::OpenCodeGo => "OpenCode Go",
+            ProviderId::Synthetic => "Synthetic",
+        }
+    }
+
+    /// Get the cookie domain for this provider.
+    /// Returns the domain used for cookie extraction, or None if the provider
+    /// doesn't use cookies for authentication.
+    pub fn cookie_domain(&self) -> Option<&'static str> {
+        match self {
+            ProviderId::Claude => Some("claude.ai"),
+            ProviderId::Codex => Some("chatgpt.com"),
+            ProviderId::Gemini => Some("aistudio.google.com"),
+            ProviderId::Grok => Some("grok.com"),
+            ProviderId::OpenCodeGo => Some("opencode.ai"),
+            ProviderId::Zai => None,
+            ProviderId::Synthetic => None,
+        }
+    }
+
+    /// Parse from CLI name string
+    pub fn from_cli_name(name: &str) -> Option<Self> {
+        match name.to_lowercase().as_str() {
+            "codex" | "openai" => Some(ProviderId::Codex),
+            "claude" | "anthropic" => Some(ProviderId::Claude),
+            "gemini" | "google" => Some(ProviderId::Gemini),
+            "zai" | "z.ai" => Some(ProviderId::Zai),
+            "grok" | "xai" | "x.ai" | "supergrok" | "super-grok" => Some(ProviderId::Grok),
+            "opencodego" | "opencode-go" | "opencode go" => Some(ProviderId::OpenCodeGo),
+            "synthetic" => Some(ProviderId::Synthetic),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for ProviderId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.cli_name())
+    }
+}
+
+/// Data source mode for fetching usage
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SourceMode {
+    /// Automatically choose the best available source
+    #[default]
+    Auto,
+    /// Use OAuth API
+    OAuth,
+    /// Use web API with browser cookies
+    Web,
+    /// Use CLI probe
+    Cli,
+}
+
+impl SourceMode {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "auto" => Some(SourceMode::Auto),
+            "oauth" => Some(SourceMode::OAuth),
+            "web" => Some(SourceMode::Web),
+            "cli" => Some(SourceMode::Cli),
+            _ => None,
+        }
+    }
+}
+
+/// Metadata about a provider
+#[derive(Debug, Clone)]
+pub struct ProviderMetadata {
+    pub id: ProviderId,
+    pub display_name: &'static str,
+    pub session_label: &'static str,
+    pub weekly_label: &'static str,
+    pub supports_opus: bool,
+    pub supports_credits: bool,
+    pub default_enabled: bool,
+    pub is_primary: bool,
+    pub dashboard_url: Option<&'static str>,
+    pub status_page_url: Option<&'static str>,
+}
+
+/// Errors that can occur when fetching provider data
+#[derive(Debug, Error)]
+pub enum ProviderError {
+    #[error("Provider not installed: {0}")]
+    NotInstalled(String),
+
+    #[error("Authentication required")]
+    AuthRequired,
+
+    #[error("OAuth error: {0}")]
+    OAuth(String),
+
+    #[error("Parse error: {0}")]
+    Parse(String),
+
+    #[error("Network error: {0}")]
+    Network(#[from] reqwest::Error),
+
+    #[error("Timeout")]
+    Timeout,
+
+    #[error("Source mode '{0:?}' not supported for this provider")]
+    UnsupportedSource(SourceMode),
+
+    #[error("No cookies available for web API")]
+    NoCookies,
+
+    #[error("{0}")]
+    Other(String),
+}
+
+/// Context passed to provider fetch operations
+#[derive(Debug, Clone)]
+pub struct FetchContext {
+    /// Source mode to use
+    pub source_mode: SourceMode,
+
+    /// Whether to include credits/cost data
+    pub include_credits: bool,
+
+    /// Timeout for web operations in seconds
+    pub web_timeout: u64,
+
+    /// Whether to enable verbose logging
+    pub verbose: bool,
+
+    /// Manual cookie header (for testing)
+    pub manual_cookie_header: Option<String>,
+
+    /// API key for providers that require authentication
+    pub api_key: Option<String>,
+
+    /// Optional provider workspace/project scope from persisted settings.
+    pub workspace_id: Option<String>,
+
+    /// Optional provider API/web region from persisted settings.
+    pub api_region: Option<String>,
+}
+
+impl Default for FetchContext {
+    fn default() -> Self {
+        Self {
+            source_mode: SourceMode::Auto,
+            include_credits: true,
+            web_timeout: 60,
+            verbose: false,
+            manual_cookie_header: None,
+            api_key: None,
+            workspace_id: None,
+            api_region: None,
+        }
+    }
+}
+
+/// Trait that all providers must implement
+#[async_trait]
+pub trait Provider: Send + Sync {
+    /// Get the provider's unique identifier
+    fn id(&self) -> ProviderId;
+
+    /// Get provider metadata
+    fn metadata(&self) -> &ProviderMetadata;
+
+    /// Fetch usage data from this provider
+    async fn fetch_usage(&self, ctx: &FetchContext) -> Result<ProviderFetchResult, ProviderError>;
+
+    /// Get the available source modes for this provider
+    fn available_sources(&self) -> Vec<SourceMode> {
+        vec![SourceMode::Auto]
+    }
+
+    /// Check if OAuth is supported
+    fn supports_oauth(&self) -> bool {
+        false
+    }
+
+    /// Check if web API (cookies) is supported
+    fn supports_web(&self) -> bool {
+        false
+    }
+
+    /// Check if CLI probe is supported
+    fn supports_cli(&self) -> bool {
+        false
+    }
+
+    /// Detect the version of the CLI tool (if applicable)
+    fn detect_version(&self) -> Option<String> {
+        None
+    }
+}
+
+/// Get the CLI name map for argument parsing
+pub fn cli_name_map() -> HashMap<&'static str, ProviderId> {
+    let mut map = HashMap::new();
+    for id in ProviderId::all() {
+        map.insert(id.cli_name(), *id);
+    }
+    // Aliases (all must map to a kept variant)
+    map.insert("openai", ProviderId::Codex);
+    map.insert("anthropic", ProviderId::Claude);
+    map.insert("google", ProviderId::Gemini);
+    map.insert("xai", ProviderId::Grok);
+    map.insert("supergrok", ProviderId::Grok);
+    map.insert("opencode-go", ProviderId::OpenCodeGo);
+    map
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_provider_id_all() {
+        let all = ProviderId::all();
+        assert_eq!(all.len(), 7);
+        assert!(all.contains(&ProviderId::Claude));
+        assert!(all.contains(&ProviderId::Codex));
+        assert!(all.contains(&ProviderId::Gemini));
+        assert!(all.contains(&ProviderId::Zai));
+        assert!(all.contains(&ProviderId::Grok));
+        assert!(all.contains(&ProviderId::OpenCodeGo));
+        assert!(all.contains(&ProviderId::Synthetic));
+    }
+
+    #[test]
+    fn test_provider_id_cli_name() {
+        assert_eq!(ProviderId::Claude.cli_name(), "claude");
+        assert_eq!(ProviderId::Codex.cli_name(), "codex");
+        assert_eq!(ProviderId::Zai.cli_name(), "zai");
+    }
+
+    #[test]
+    fn test_provider_id_display_name() {
+        assert_eq!(ProviderId::Claude.display_name(), "Claude");
+        assert_eq!(ProviderId::Zai.display_name(), "z.ai");
+    }
+
+    #[test]
+    fn test_provider_id_from_cli_name() {
+        assert_eq!(
+            ProviderId::from_cli_name("claude"),
+            Some(ProviderId::Claude)
+        );
+        assert_eq!(
+            ProviderId::from_cli_name("anthropic"),
+            Some(ProviderId::Claude)
+        );
+        assert_eq!(
+            ProviderId::from_cli_name("CLAUDE"),
+            Some(ProviderId::Claude)
+        );
+        assert_eq!(ProviderId::from_cli_name("codex"), Some(ProviderId::Codex));
+        assert_eq!(ProviderId::from_cli_name("openai"), Some(ProviderId::Codex));
+        assert_eq!(ProviderId::from_cli_name("grok"), Some(ProviderId::Grok));
+        assert_eq!(
+            ProviderId::from_cli_name("opencodego"),
+            Some(ProviderId::OpenCodeGo)
+        );
+        assert_eq!(
+            ProviderId::from_cli_name("opencode-go"),
+            Some(ProviderId::OpenCodeGo)
+        );
+        assert_eq!(ProviderId::from_cli_name("unknown"), None);
+    }
+
+    #[test]
+    fn test_provider_id_from_display_name_aliases() {
+        for provider_id in ProviderId::all() {
+            assert_eq!(
+                ProviderId::from_cli_name(provider_id.display_name()),
+                Some(*provider_id),
+                "display name should round-trip for {}",
+                provider_id.display_name()
+            );
+        }
+    }
+
+    #[test]
+    fn test_provider_id_display() {
+        assert_eq!(format!("{}", ProviderId::Claude), "claude");
+        assert_eq!(format!("{}", ProviderId::Codex), "codex");
+    }
+
+    #[test]
+    fn test_source_mode_from_str() {
+        assert_eq!(SourceMode::parse("auto"), Some(SourceMode::Auto));
+        assert_eq!(SourceMode::parse("oauth"), Some(SourceMode::OAuth));
+        assert_eq!(SourceMode::parse("web"), Some(SourceMode::Web));
+        assert_eq!(SourceMode::parse("cli"), Some(SourceMode::Cli));
+        assert_eq!(SourceMode::parse("AUTO"), Some(SourceMode::Auto));
+        assert_eq!(SourceMode::parse("invalid"), None);
+    }
+
+    #[test]
+    fn test_fetch_context_default() {
+        let ctx = FetchContext::default();
+        assert_eq!(ctx.source_mode, SourceMode::Auto);
+        assert!(ctx.include_credits);
+        assert_eq!(ctx.web_timeout, 60);
+        assert!(!ctx.verbose);
+        assert!(ctx.manual_cookie_header.is_none());
+        assert!(ctx.api_key.is_none());
+    }
+
+    #[test]
+    fn test_cli_name_map() {
+        let map = cli_name_map();
+        assert_eq!(map.get("claude"), Some(&ProviderId::Claude));
+        assert_eq!(map.get("anthropic"), Some(&ProviderId::Claude));
+        assert_eq!(map.get("codex"), Some(&ProviderId::Codex));
+        assert_eq!(map.get("openai"), Some(&ProviderId::Codex));
+    }
+
+    #[test]
+    fn test_provider_id_cookie_domain() {
+        // Cookie-based providers
+        assert_eq!(ProviderId::Claude.cookie_domain(), Some("claude.ai"));
+        assert_eq!(ProviderId::Codex.cookie_domain(), Some("chatgpt.com"));
+        assert_eq!(
+            ProviderId::Gemini.cookie_domain(),
+            Some("aistudio.google.com")
+        );
+        assert_eq!(ProviderId::Grok.cookie_domain(), Some("grok.com"));
+        assert_eq!(ProviderId::OpenCodeGo.cookie_domain(), Some("opencode.ai"));
+
+        // Token-based providers (no cookies)
+        assert_eq!(ProviderId::Zai.cookie_domain(), None);
+        assert_eq!(ProviderId::Synthetic.cookie_domain(), None);
+    }
+}

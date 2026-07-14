@@ -1,0 +1,196 @@
+//! Window-property application and the hide-to-tray flow.
+
+use std::sync::Mutex;
+
+use tauri::{AppHandle, Manager, WebviewWindow};
+
+use crate::state::AppState;
+use crate::surface::{SurfaceMode, SurfaceTransition, WindowProperties};
+use crate::surface_target::SurfaceTarget;
+
+use super::transition::{SurfaceSnapshot, apply_transition, current_surface_snapshot};
+use super::{lock_shell_transition_serial, try_lock_shell_transition_serial};
+
+pub(super) struct HideToTrayPlan {
+    pub previous: SurfaceSnapshot,
+    pub transition: Option<SurfaceTransition>,
+    pub target: SurfaceTarget,
+}
+
+/// Apply the window properties dictated by a surface mode.
+pub fn apply_window_properties(
+    window: &WebviewWindow,
+    props: &WindowProperties,
+) -> Result<(), String> {
+    let needs_show = apply_window_layout(window, props)?;
+    if needs_show {
+        show_window(window)?;
+    }
+    Ok(())
+}
+
+/// Apply layout properties (decorations, size, always-on-top) WITHOUT making
+/// the window visible.  Returns `true` when the caller should subsequently
+/// call [`show_window`] to make it visible, or `false` when the mode hides
+/// the window (already handled internally).
+pub fn apply_window_layout(
+    window: &WebviewWindow,
+    props: &WindowProperties,
+) -> Result<bool, String> {
+    let map_err = |e: tauri::Error| e.to_string();
+
+    window.set_decorations(props.decorations).map_err(map_err)?;
+    if props.decorations {
+        // Decorated surfaces (Pop-Out / Settings) must drop the borderless
+        // subclass installed at startup, otherwise they render with no native
+        // frame. Removing it is idempotent and restores the caption/frame.
+        super::dwm::remove_dark_caption(window);
+    } else {
+        super::dwm::force_dark_caption(window);
+    }
+    window.set_resizable(props.resizable).map_err(map_err)?;
+    window
+        .set_always_on_top(props.always_on_top)
+        .map_err(map_err)?;
+
+    if props.visible {
+        let (width, height) = capped_logical_size(window, props.width, props.height);
+        let size = tauri::LogicalSize::new(width, height);
+        window.set_size(size).map_err(map_err)?;
+
+        if let (Some(min_w), Some(min_h)) = (props.min_width, props.min_height) {
+            window
+                .set_min_size(Some(tauri::LogicalSize::new(min_w, min_h)))
+                .map_err(map_err)?;
+        } else {
+            window
+                .set_min_size::<tauri::LogicalSize<f64>>(None)
+                .map_err(map_err)?;
+        }
+
+        Ok(true) // caller should show
+    } else {
+        window.hide().map_err(map_err)?;
+        Ok(false)
+    }
+}
+
+fn capped_logical_size(window: &WebviewWindow, width: f64, height: f64) -> (f64, f64) {
+    const MARGIN: f64 = 16.0;
+
+    let Some(monitor) = window
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| window.primary_monitor().ok().flatten())
+    else {
+        return (width, height);
+    };
+
+    let scale = monitor.scale_factor();
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
+    let work_area = monitor.work_area();
+    let max_width = (work_area.size.width as f64 / scale - MARGIN).max(320.0);
+    let max_height = (work_area.size.height as f64 / scale - MARGIN).max(240.0);
+
+    (width.min(max_width), height.min(max_height))
+}
+
+/// Make the window visible and give it input focus.
+pub fn show_window(window: &WebviewWindow) -> Result<(), String> {
+    let map_err = |e: tauri::Error| e.to_string();
+    window.show().map_err(map_err)?;
+    window.set_focus().map_err(map_err)?;
+    Ok(())
+}
+
+pub fn hide_to_tray(app: &AppHandle) -> Result<SurfaceMode, String> {
+    hide_to_tray_if_current(app, |_| true).map(|mode| mode.unwrap_or(SurfaceMode::Hidden))
+}
+
+pub fn hide_to_tray_if_current<P>(
+    app: &AppHandle,
+    is_eligible: P,
+) -> Result<Option<SurfaceMode>, String>
+where
+    P: FnOnce(SurfaceMode) -> bool,
+{
+    let _transition_guard = lock_shell_transition_serial()?;
+    hide_to_tray_if_current_locked(app, is_eligible)
+}
+
+pub fn try_hide_to_tray_if_current<P>(
+    app: &AppHandle,
+    is_eligible: P,
+) -> Result<Option<SurfaceMode>, String>
+where
+    P: FnOnce(SurfaceMode) -> bool,
+{
+    let Some(_transition_guard) = try_lock_shell_transition_serial()? else {
+        tracing::warn!(
+            "hide_to_tray_if_current: skipped because shell transition is already in progress"
+        );
+        return Ok(None);
+    };
+    hide_to_tray_if_current_locked(app, is_eligible)
+}
+
+fn hide_to_tray_if_current_locked<P>(
+    app: &AppHandle,
+    is_eligible: P,
+) -> Result<Option<SurfaceMode>, String>
+where
+    P: FnOnce(SurfaceMode) -> bool,
+{
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "main window unavailable".to_string())?;
+    let st = app
+        .try_state::<Mutex<AppState>>()
+        .ok_or_else(|| "app state unavailable".to_string())?;
+    let plan = {
+        let mut guard = st.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        prepare_hide_to_tray_if_current(&mut guard, is_eligible)
+    };
+
+    let Some(plan) = plan else {
+        return Ok(None);
+    };
+
+    if let Some(transition) = plan.transition {
+        apply_transition(app, &window, &transition, &plan.previous, plan.target, None).map(Some)
+    } else {
+        let _ = window.hide();
+        Ok(Some(SurfaceMode::Hidden))
+    }
+}
+
+#[allow(dead_code)]
+pub fn hide_to_tray_state(state: &mut AppState) {
+    let _ = prepare_hide_to_tray_if_current(state, |_| true);
+}
+
+pub(super) fn prepare_hide_to_tray_if_current<P>(
+    state: &mut AppState,
+    is_eligible: P,
+) -> Option<HideToTrayPlan>
+where
+    P: FnOnce(SurfaceMode) -> bool,
+{
+    let current = state.surface_machine.current();
+    if !is_eligible(current) {
+        return None;
+    }
+
+    let previous = current_surface_snapshot(state);
+    let transition = state.hide_surface();
+    Some(HideToTrayPlan {
+        previous,
+        transition,
+        target: state.current_target.clone(),
+    })
+}
