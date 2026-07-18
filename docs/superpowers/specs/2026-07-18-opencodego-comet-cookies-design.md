@@ -16,7 +16,7 @@ Both causes affect every cookie-based provider (OpenCode Go, Grok web mode); the
 ## Non-goals
 
 - Reworking the OpenCode Go scrape itself (workspace server-fn id, `/go` page parsing). If a *valid* cookie still fails, that is a separate item.
-- WSL detection path for Comet (Arc/Chromium have no WSL entry either; existing precedent).
+- No WSL *detection* effort beyond the compile-required match arm (see below); WSL cookie paths are known-insufficient for DPAPI anyway.
 - Frontend changes — the browser dropdown is populated dynamically from `list_detected_browsers`.
 
 ## Changes
@@ -26,7 +26,7 @@ Both causes affect every cookie-based provider (OpenCode Go, Grok web mode); the
 - New `BrowserType::Comet` variant: `display_name() == "Comet"`, chromium-based (default via `is_chromium_based`).
 - Insert `Comet` into `BrowserType::all()` after `Brave`.
 - Native user data dir: `dirs::data_local_dir()/Perplexity/Comet/User Data`.
-- No WSL arm (see non-goals).
+- WSL arm (required to compile): the `match browser_type` in the WSL branch of `get_user_data_dir` (detection.rs:141) is exhaustive, so it needs `BrowserType::Comet => Some(appdata_local.join("Perplexity").join("Comet").join("User Data"))`. No `wsl_paths.rs` entry — that detector only covers Chrome/Edge/Brave and stays as-is.
 
 ### 2. `apps/desktop-tauri/src-tauri/src/commands/browser_import.rs` — bridge key
 
@@ -39,12 +39,14 @@ Current flow in `extract_chromium_cookies`: `copy_to_temp` → `Connection::open
 New flow: if `copy_to_temp` fails, fall back to opening the **original** DB read-only via URI:
 
 ```
-file:<path>?immutable=1   with SQLITE_OPEN_READ_ONLY | SQLITE_OPEN_URI
+file:<path>?immutable=1   opened with Connection::open_with_flags(uri, SQLITE_OPEN_READ_ONLY | SQLITE_OPEN_URI)
 ```
 
-(path converted to a proper `file:` URI — forward slashes, percent-encoded spaces/drive colon handled per rusqlite URI rules.)
+Pass `SQLITE_OPEN_URI` per-connection (do not rely on the global `SQLITE_USE_URI` compile option). The path must be converted to a valid `file:` URI — forward slashes, percent-encoded spaces, Windows drive letter handled per rusqlite/SQLite URI rules.
 
 Then run the same cookie query on that connection. No temp file, no locking.
+
+Scope: the fallback applies to `extract_chromium_cookies` only. `copy_to_temp` is also used by `extract_firefox_cookies` (cookies.rs:490) — do **not** extend the fallback there (Firefox DBs are not WAL-locked by a running Chromium and haven't shown the problem).
 
 Mark with a `ponytail:` comment: immutable mode skips the WAL, so cookies written but not yet checkpointed can be missed on one poll; the next refresh picks them up. Upgrade path if it ever matters: read-only + WAL open with retry.
 
