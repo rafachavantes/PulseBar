@@ -15,6 +15,7 @@ pub enum BrowserType {
     Chrome,
     Edge,
     Brave,
+    Comet,
     Arc,
     Firefox,
     Chromium,
@@ -27,6 +28,7 @@ impl BrowserType {
             BrowserType::Chrome,
             BrowserType::Edge,
             BrowserType::Brave,
+            BrowserType::Comet,
             BrowserType::Arc,
             BrowserType::Firefox,
             BrowserType::Chromium,
@@ -44,6 +46,7 @@ impl BrowserType {
             BrowserType::Chrome => "Google Chrome",
             BrowserType::Edge => "Microsoft Edge",
             BrowserType::Brave => "Brave",
+            BrowserType::Comet => "Comet",
             BrowserType::Arc => "Arc",
             BrowserType::Firefox => "Firefox",
             BrowserType::Chromium => "Chromium",
@@ -157,6 +160,12 @@ impl BrowserDetector {
                         .join("Brave-Browser")
                         .join("User Data"),
                 ),
+                BrowserType::Comet => Some(
+                    appdata_local
+                        .join("Perplexity")
+                        .join("Comet")
+                        .join("User Data"),
+                ),
                 BrowserType::Arc => Some(appdata_local.join("Arc").join("User Data")),
                 BrowserType::Chromium => Some(appdata_local.join("Chromium").join("User Data")),
                 BrowserType::Firefox => wsl::windows_appdata_roaming()
@@ -184,6 +193,10 @@ impl BrowserDetector {
             BrowserType::Brave => local_app_data
                 .join("BraveSoftware")
                 .join("Brave-Browser")
+                .join("User Data"),
+            BrowserType::Comet => local_app_data
+                .join("Perplexity")
+                .join("Comet")
                 .join("User Data"),
             BrowserType::Arc => local_app_data.join("Arc").join("User Data"),
             BrowserType::Chromium => local_app_data.join("Chromium").join("User Data"),
@@ -277,5 +290,20 @@ mod tests {
                 browser.profiles.len()
             );
         }
+    }
+
+    #[test]
+    fn test_comet_browser_registration() {
+        assert!(BrowserType::all().contains(&BrowserType::Comet));
+        assert!(BrowserType::Comet.is_chromium_based());
+        assert_eq!(BrowserType::Comet.display_name(), "Comet");
+
+        let dir = BrowserDetector::get_user_data_dir(BrowserType::Comet)
+            .expect("Comet user data dir should resolve");
+        let normalized = dir.to_string_lossy().replace('\\', "/");
+        assert!(
+            normalized.ends_with("Perplexity/Comet/User Data"),
+            "unexpected Comet user data dir: {normalized}"
+        );
     }
 }
