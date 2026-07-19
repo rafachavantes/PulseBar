@@ -184,12 +184,13 @@ impl Provider for GrokProvider {
                 if let Some(ref cookie_header) = ctx.manual_cookie_header {
                     return self.fetch_with_cookie(cookie_header).await;
                 }
+                #[cfg_attr(not(windows), allow(unused_mut))]
+                let mut abe_seen = false;
+
                 #[cfg(windows)]
                 {
-                    use crate::browser::cookies::{Cookie, CookieError, CookieExtractor};
+                    use crate::browser::cookies::{Cookie, CookieExtractor};
                     use crate::browser::detection::BrowserDetector;
-
-                    let mut abe_seen = false;
 
                     for browser in BrowserDetector::detect_all() {
                         match CookieExtractor::extract_for_domain(&browser, "grok.com") {
@@ -206,7 +207,7 @@ impl Provider for GrokProvider {
                                 }
                             }
                             Ok(_) => {}
-                            Err(CookieError::AppBoundEncryption) => {
+                            Err(crate::browser::cookies::CookieError::AppBoundEncryption) => {
                                 abe_seen = true;
                             }
                             Err(e) => {
@@ -218,15 +219,17 @@ impl Provider for GrokProvider {
                             }
                         }
                     }
-
-                    if abe_seen {
-                        return Err(ProviderError::Other(
-                            CookieError::AppBoundEncryption.to_string(),
-                        ));
-                    }
                 }
-                let credentials = Self::load_credentials()?;
-                self.fetch_with_auth(&credentials).await
+
+                // auth.json (from `grok login`) is the primary fallback; only
+                // surface ABE if it is missing and the cookie path was blocked.
+                match Self::load_credentials() {
+                    Ok(credentials) => self.fetch_with_auth(&credentials).await,
+                    Err(_) if abe_seen => Err(ProviderError::Other(
+                        crate::browser::cookies::CookieError::AppBoundEncryption.to_string(),
+                    )),
+                    Err(e) => Err(e),
+                }
             }
             SourceMode::Cli => Err(ProviderError::UnsupportedSource(SourceMode::Cli)),
             SourceMode::OAuth => Err(ProviderError::UnsupportedSource(SourceMode::OAuth)),
