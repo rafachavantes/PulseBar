@@ -115,6 +115,7 @@ fn browser_type_key(bt: pulsebar::browser::detection::BrowserType) -> &'static s
         BrowserType::Chrome => "chrome",
         BrowserType::Edge => "edge",
         BrowserType::Brave => "brave",
+        BrowserType::Comet => "comet",
         BrowserType::Arc => "arc",
         BrowserType::Firefox => "firefox",
         BrowserType::Chromium => "chromium",

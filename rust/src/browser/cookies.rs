@@ -187,10 +187,19 @@ impl CookieExtractor {
 
         // Copy the database to a temp file (browser may have it locked)
         tracing::debug!("Copying cookies DB to temp...");
-        let temp_db = Self::copy_to_temp(&cookies_db).map_err(|e| {
-            tracing::debug!("Failed to copy cookies DB: {}", e);
-            e
-        })?;
+        let temp_db = match Self::copy_to_temp(&cookies_db) {
+            Ok(path) => path,
+            Err(e) => {
+                tracing::debug!("Failed to copy cookies DB: {}", e);
+                // ponytail: ABE holds an exclusive OS handle on the Cookies DB;
+                // if we can't even copy it and the browser has ABE active, map
+                // to AppBoundEncryption so the actionable message surfaces.
+                if Self::detect_app_bound_encryption(&local_state_path) {
+                    return Err(CookieError::AppBoundEncryption);
+                }
+                return Err(e);
+            }
+        };
 
         let domain_pattern = format!("%{}", domain);
         let dot_domain_pattern = format!(".{}", domain);

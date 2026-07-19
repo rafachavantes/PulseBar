@@ -184,30 +184,52 @@ impl Provider for GrokProvider {
                 if let Some(ref cookie_header) = ctx.manual_cookie_header {
                     return self.fetch_with_cookie(cookie_header).await;
                 }
+                #[cfg_attr(not(windows), allow(unused_mut))]
+                let mut abe_seen = false;
+
                 #[cfg(windows)]
                 {
                     use crate::browser::cookies::{Cookie, CookieExtractor};
                     use crate::browser::detection::BrowserDetector;
 
                     for browser in BrowserDetector::detect_all() {
-                        if let Ok(cookies) =
-                            CookieExtractor::extract_for_domain(&browser, "grok.com")
-                        {
-                            let cookie_header = cookies
-                                .iter()
-                                .map(|c: &Cookie| format!("{}={}", c.name, c.value))
-                                .collect::<Vec<_>>()
-                                .join("; ");
-                            if !cookie_header.is_empty()
-                                && let Ok(result) = self.fetch_with_cookie(&cookie_header).await
-                            {
-                                return Ok(result);
+                        match CookieExtractor::extract_for_domain(&browser, "grok.com") {
+                            Ok(cookies) if !cookies.is_empty() => {
+                                let cookie_header = cookies
+                                    .iter()
+                                    .map(|c: &Cookie| format!("{}={}", c.name, c.value))
+                                    .collect::<Vec<_>>()
+                                    .join("; ");
+                                if !cookie_header.is_empty()
+                                    && let Ok(result) = self.fetch_with_cookie(&cookie_header).await
+                                {
+                                    return Ok(result);
+                                }
+                            }
+                            Ok(_) => {}
+                            Err(crate::browser::cookies::CookieError::AppBoundEncryption) => {
+                                abe_seen = true;
+                            }
+                            Err(e) => {
+                                tracing::debug!(
+                                    "Failed to extract cookies from {}: {}",
+                                    browser.browser_type.display_name(),
+                                    e
+                                );
                             }
                         }
                     }
                 }
-                let credentials = Self::load_credentials()?;
-                self.fetch_with_auth(&credentials).await
+
+                // auth.json (from `grok login`) is the primary fallback; only
+                // surface ABE if it is missing and the cookie path was blocked.
+                match Self::load_credentials() {
+                    Ok(credentials) => self.fetch_with_auth(&credentials).await,
+                    Err(_) if abe_seen => Err(ProviderError::Other(
+                        crate::browser::cookies::CookieError::AppBoundEncryption.to_string(),
+                    )),
+                    Err(e) => Err(e),
+                }
             }
             SourceMode::Cli => Err(ProviderError::UnsupportedSource(SourceMode::Cli)),
             SourceMode::OAuth => Err(ProviderError::UnsupportedSource(SourceMode::OAuth)),
@@ -546,5 +568,13 @@ mod tests {
     fn splits_grpc_web_data_frames() {
         let data = [0, 0, 0, 0, 2, 1, 2, 0x80, 0, 0, 0, 1, b'x'];
         assert_eq!(grpc_web_data_frames(&data), vec![vec![1, 2]]);
+    }
+
+    #[test]
+    fn abe_error_message_is_actionable() {
+        use crate::browser::cookies::CookieError;
+        let msg = CookieError::AppBoundEncryption.to_string();
+        assert!(msg.contains("App-Bound Encryption"));
+        assert!(msg.contains("Chrome/Edge"));
     }
 }
