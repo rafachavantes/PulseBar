@@ -253,28 +253,47 @@ impl Provider for OpenCodeGoProvider {
 
                 #[cfg(windows)]
                 {
-                    use crate::browser::cookies::{Cookie, CookieExtractor};
+                    use crate::browser::cookies::{Cookie, CookieError, CookieExtractor};
                     use crate::browser::detection::BrowserDetector;
 
+                    let mut abe_seen = false;
+
                     for browser in BrowserDetector::detect_all() {
-                        if let Ok(cookies) =
-                            CookieExtractor::extract_for_domain(&browser, "opencode.ai")
-                        {
-                            let cookie_header: String = cookies
-                                .iter()
-                                .map(|c: &Cookie| format!("{}={}", c.name, c.value))
-                                .collect::<Vec<_>>()
-                                .join("; ");
-                            if !cookie_header.is_empty() {
-                                match self.fetch_with_cookies(&cookie_header).await {
-                                    Ok(usage) => {
-                                        return Ok(ProviderFetchResult::new(usage, "web"));
+                        match CookieExtractor::extract_for_domain(&browser, "opencode.ai") {
+                            Ok(cookies) if !cookies.is_empty() => {
+                                let cookie_header: String = cookies
+                                    .iter()
+                                    .map(|c: &Cookie| format!("{}={}", c.name, c.value))
+                                    .collect::<Vec<_>>()
+                                    .join("; ");
+                                if !cookie_header.is_empty() {
+                                    match self.fetch_with_cookies(&cookie_header).await {
+                                        Ok(usage) => {
+                                            return Ok(ProviderFetchResult::new(usage, "web"));
+                                        }
+                                        Err(ProviderError::AuthRequired) => continue,
+                                        Err(e) => return Err(e),
                                     }
-                                    Err(ProviderError::AuthRequired) => continue,
-                                    Err(e) => return Err(e),
                                 }
                             }
+                            Ok(_) => {}
+                            Err(CookieError::AppBoundEncryption) => {
+                                abe_seen = true;
+                            }
+                            Err(e) => {
+                                tracing::debug!(
+                                    "Failed to extract cookies from {}: {}",
+                                    browser.browser_type.display_name(),
+                                    e
+                                );
+                            }
                         }
+                    }
+
+                    if abe_seen {
+                        return Err(ProviderError::Other(
+                            CookieError::AppBoundEncryption.to_string(),
+                        ));
                     }
                 }
 
@@ -326,5 +345,13 @@ mod tests {
         assert!((secondary.used_percent - 13.0).abs() < 0.001);
         let tertiary = snap.tertiary.expect("monthly");
         assert!((tertiary.used_percent - 7.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn abe_error_message_is_actionable() {
+        use crate::browser::cookies::CookieError;
+        let msg = CookieError::AppBoundEncryption.to_string();
+        assert!(msg.contains("App-Bound Encryption"));
+        assert!(msg.contains("Chrome/Edge"));
     }
 }
