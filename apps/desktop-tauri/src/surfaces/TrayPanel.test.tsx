@@ -219,6 +219,16 @@ describe("TrayPanel provider grid", () => {
       canApply: false,
       lastCheckedAt: null,
     });
+    tauriMocks.checkForUpdates.mockResolvedValue({
+      status: "idle",
+      version: null,
+      error: null,
+      progress: null,
+      releaseUrl: null,
+      canDownload: false,
+      canApply: false,
+      lastCheckedAt: null,
+    });
     tauriMocks.getProviderChartData.mockResolvedValue({
       providerId: "codex",
       costHistory: [],
