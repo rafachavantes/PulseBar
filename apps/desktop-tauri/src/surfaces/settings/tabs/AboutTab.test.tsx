@@ -107,7 +107,7 @@ describe("AboutTab", () => {
     );
     expect(tauriMocks.openExternalUrl).toHaveBeenNthCalledWith(
       2,
-      "https://github.com/rafachavantes/PulseBar",
+      "https://pulsebar.app",
     );
     expect(tauriMocks.openExternalUrl).toHaveBeenNthCalledWith(
       3,

@@ -89,15 +89,15 @@ export default function AboutTab(_props: TabProps) {
       </div>
 
       <p className="about-copyright">
-        Windows port by NessZerra. Based on{" "}
+        PulseBar by Rafa Chavantes. Based on{" "}
         <button
           type="button"
           className="about-link about-link--inline"
           onClick={() => openAboutLink("https://github.com/steipete/CodexBar")}
         >
-          PulseBar
+          CodexBar
         </button>{" "}
-        by steipete. MIT License.
+        (Windows port by NessZerra) by steipete. MIT License.
       </p>
     </section>
   );
