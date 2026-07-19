@@ -7,6 +7,7 @@ use crate::core::{
     CostSnapshot, FetchContext, ProviderFetchResult, ProviderId, RateWindow, SourceMode, UsagePace,
     UsageSnapshot, instantiate_provider,
 };
+use crate::settings::{ApiKeys, ManualCookies, Settings};
 use crate::status::{ProviderStatus as StatusInfo, StatusLevel, fetch_provider_status};
 
 pub const PROVIDER_ARG_HELP: &str = "Provider to query (for example: codex, claude, gemini, nanogpt, deepseek, codebuff, windsurf, all, both)";
@@ -210,18 +211,39 @@ enum UsageOutput {
 }
 
 async fn collect_usage_output(command: &UsageCommand) -> UsageOutput {
+    let settings = Settings::load();
+    let api_keys = ApiKeys::load();
+    let manual_cookies = ManualCookies::load();
     match command.format {
         OutputFormat::Text => {
             let mut sections = Vec::new();
             for provider_id in &command.providers {
-                sections.push(fetch_provider_text_output(*provider_id, command).await);
+                sections.push(
+                    fetch_provider_text_output(
+                        *provider_id,
+                        command,
+                        &settings,
+                        &api_keys,
+                        &manual_cookies,
+                    )
+                    .await,
+                );
             }
             UsageOutput::Text(sections)
         }
         OutputFormat::Json => {
             let mut results = Vec::new();
             for provider_id in &command.providers {
-                results.push(fetch_provider_json_output(*provider_id, command).await);
+                results.push(
+                    fetch_provider_json_output(
+                        *provider_id,
+                        command,
+                        &settings,
+                        &api_keys,
+                        &manual_cookies,
+                    )
+                    .await,
+                );
             }
             UsageOutput::Json {
                 results,
@@ -231,8 +253,14 @@ async fn collect_usage_output(command: &UsageCommand) -> UsageOutput {
     }
 }
 
-async fn fetch_provider_text_output(provider_id: ProviderId, command: &UsageCommand) -> String {
-    match fetch_provider_result(provider_id, command).await {
+async fn fetch_provider_text_output(
+    provider_id: ProviderId,
+    command: &UsageCommand,
+    settings: &Settings,
+    api_keys: &ApiKeys,
+    manual_cookies: &ManualCookies,
+) -> String {
+    match fetch_provider_result(provider_id, command, settings, api_keys, manual_cookies).await {
         Ok((result, status)) => {
             render_text_with_status(provider_id, &result, status.as_ref(), command.use_color)
         }
@@ -243,8 +271,11 @@ async fn fetch_provider_text_output(provider_id: ProviderId, command: &UsageComm
 async fn fetch_provider_json_output(
     provider_id: ProviderId,
     command: &UsageCommand,
+    settings: &Settings,
+    api_keys: &ApiKeys,
+    manual_cookies: &ManualCookies,
 ) -> serde_json::Value {
-    match fetch_provider_result(provider_id, command).await {
+    match fetch_provider_result(provider_id, command, settings, api_keys, manual_cookies).await {
         Ok((result, status)) => render_json_result(provider_id, result, status.as_ref()),
         Err(e) => serde_json::json!({
             "provider": provider_id.cli_name(),
@@ -256,18 +287,51 @@ async fn fetch_provider_json_output(
 async fn fetch_provider_result(
     provider_id: ProviderId,
     command: &UsageCommand,
+    settings: &Settings,
+    api_keys: &ApiKeys,
+    manual_cookies: &ManualCookies,
 ) -> anyhow::Result<(ProviderFetchResult, Option<StatusInfo>)> {
     let provider = instantiate_provider(provider_id);
     let status_future = command
         .fetch_status
         .then(|| fetch_provider_status(provider_id.cli_name()));
-    let result = provider.fetch_usage(&command.ctx).await?;
+    let ctx = ctx_for_provider(
+        &command.ctx,
+        provider_id,
+        settings,
+        manual_cookies,
+        api_keys,
+    );
+    let result = provider.fetch_usage(&ctx).await?;
     let status = if let Some(fut) = status_future {
         fut.await
     } else {
         None
     };
     Ok((result, status))
+}
+
+/// Build a per-provider `FetchContext` by overlaying per-provider settings on
+/// the shared base context. Mirrors the populate pattern in `diagnose.rs`.
+fn ctx_for_provider(
+    base: &FetchContext,
+    provider_id: ProviderId,
+    settings: &Settings,
+    manual_cookies: &ManualCookies,
+    api_keys: &ApiKeys,
+) -> FetchContext {
+    let mut ctx = base.clone();
+    ctx.manual_cookie_header = manual_cookies
+        .get(provider_id.cli_name())
+        .map(ToOwned::to_owned);
+    ctx.api_key = api_keys.get(provider_id.cli_name()).map(ToOwned::to_owned);
+    ctx.workspace_id = settings
+        .provider_config(provider_id)
+        .and_then(|c| c.workspace_id.clone());
+    ctx.api_region = settings
+        .provider_config(provider_id)
+        .and_then(|c| c.api_region.clone());
+    ctx
 }
 
 fn render_text_error(provider_id: ProviderId, error_msg: &str, use_color: bool) -> String {
@@ -514,5 +578,40 @@ fn render_progress_bar(percent: f64, width: usize, use_color: bool) -> String {
         format!("{}{}\x1b[0m", color, bar)
     } else {
         bar
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ctx_for_provider_populates_workspace_id_from_settings() {
+        let mut settings = Settings::default();
+        settings.set_workspace_id(ProviderId::OpenCodeGo, "wrk_test_123");
+        let manual_cookies = ManualCookies::default();
+        let api_keys = ApiKeys::default();
+        let base = FetchContext {
+            source_mode: SourceMode::Auto,
+            include_credits: true,
+            web_timeout: 60,
+            verbose: false,
+            manual_cookie_header: None,
+            api_key: None,
+            workspace_id: None,
+            api_region: None,
+        };
+
+        let ctx = ctx_for_provider(
+            &base,
+            ProviderId::OpenCodeGo,
+            &settings,
+            &manual_cookies,
+            &api_keys,
+        );
+
+        assert_eq!(ctx.workspace_id.as_deref(), Some("wrk_test_123"));
+        assert_eq!(ctx.manual_cookie_header, None);
+        assert_eq!(ctx.api_key, None);
     }
 }
