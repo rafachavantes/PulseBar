@@ -1,13 +1,13 @@
 //! OpenCode Go provider implementation
 //!
 //! Separate workspace surface that shares the `opencode.ai` cookie domain with
-//! the OpenCode provider. Resolves the workspace ID, then scrapes the `/go`
-//! usage page for rolling/weekly/monthly windows.
+//! the OpenCode provider. 100% manual: requires `workspace_id` +
+//! `manual_cookie_header` and scrapes the `/go` usage page for
+//! rolling/weekly/monthly windows.
 
 use async_trait::async_trait;
 use chrono::Utc;
 use reqwest::Client;
-use uuid::Uuid;
 
 use crate::core::{
     FetchContext, Provider, ProviderError, ProviderFetchResult, ProviderId, ProviderMetadata,
@@ -15,9 +15,6 @@ use crate::core::{
 };
 
 const BASE_URL: &str = "https://opencode.ai";
-const SERVER_URL: &str = "https://opencode.ai/_server";
-const WORKSPACES_SERVER_ID: &str =
-    "def39973159c7f0483d8793a822b8dbb10d067e12c65455fcb4608459ba0234f";
 const USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 pub struct OpenCodeGoProvider {
@@ -45,46 +42,6 @@ impl OpenCodeGoProvider {
                 .build()
                 .unwrap_or_else(|_| Client::new()),
         }
-    }
-
-    async fn fetch_workspace_id(&self, cookie_header: &str) -> Result<String, ProviderError> {
-        let url = format!("{}?id={}", SERVER_URL, WORKSPACES_SERVER_ID);
-        let response = self
-            .client
-            .get(&url)
-            .header("Cookie", cookie_header)
-            .header("X-Server-Id", WORKSPACES_SERVER_ID)
-            .header("X-Server-Instance", format!("server-fn:{}", Uuid::new_v4()))
-            .header("User-Agent", USER_AGENT)
-            .header("Origin", BASE_URL)
-            .header("Referer", BASE_URL)
-            .header(
-                "Accept",
-                "text/javascript, application/json;q=0.9, */*;q=0.8",
-            )
-            .send()
-            .await?;
-
-        let status = response.status();
-        if !status.is_success() {
-            if status.as_u16() == 401 || status.as_u16() == 403 {
-                return Err(ProviderError::AuthRequired);
-            }
-            return Err(ProviderError::Other(format!(
-                "OpenCode workspace API returned {}",
-                status
-            )));
-        }
-
-        let text = response.text().await?;
-        if Self::looks_signed_out(&text) {
-            return Err(ProviderError::AuthRequired);
-        }
-
-        let ids = Self::parse_workspace_ids(&text);
-        ids.into_iter()
-            .next()
-            .ok_or_else(|| ProviderError::Parse("No workspace ID found".to_string()))
     }
 
     async fn fetch_usage_page(
@@ -190,38 +147,11 @@ impl OpenCodeGoProvider {
         re.captures(text)?.get(1)?.as_str().parse().ok()
     }
 
-    fn parse_workspace_ids(text: &str) -> Vec<String> {
-        let pattern = r#"(wrk_[A-Za-z0-9_-]+)"#;
-        let re = match regex_lite::Regex::new(pattern) {
-            Ok(r) => r,
-            Err(_) => return vec![],
-        };
-        let mut seen = Vec::new();
-        for caps in re.captures_iter(text) {
-            if let Some(m) = caps.get(1) {
-                let s = m.as_str().to_string();
-                if !seen.contains(&s) {
-                    seen.push(s);
-                }
-            }
-        }
-        seen
-    }
-
     fn looks_signed_out(text: &str) -> bool {
         let lower = text.to_lowercase();
         lower.contains("auth/authorize")
             || lower.contains("\"signin\"")
             || lower.contains("please sign in")
-    }
-
-    async fn fetch_with_cookies(
-        &self,
-        cookie_header: &str,
-    ) -> Result<UsageSnapshot, ProviderError> {
-        let workspace_id = self.fetch_workspace_id(cookie_header).await?;
-        let page = self.fetch_usage_page(&workspace_id, cookie_header).await?;
-        Self::parse_usage_text(&page)
     }
 }
 
@@ -246,58 +176,19 @@ impl Provider for OpenCodeGoProvider {
 
         match ctx.source_mode {
             SourceMode::Auto | SourceMode::Web => {
-                if let Some(ref cookie_header) = ctx.manual_cookie_header {
-                    let usage = self.fetch_with_cookies(cookie_header).await?;
-                    return Ok(ProviderFetchResult::new(usage, "web"));
-                }
-
-                #[cfg(windows)]
-                {
-                    use crate::browser::cookies::{Cookie, CookieError, CookieExtractor};
-                    use crate::browser::detection::BrowserDetector;
-
-                    let mut abe_seen = false;
-
-                    for browser in BrowserDetector::detect_all() {
-                        match CookieExtractor::extract_for_domain(&browser, "opencode.ai") {
-                            Ok(cookies) if !cookies.is_empty() => {
-                                let cookie_header: String = cookies
-                                    .iter()
-                                    .map(|c: &Cookie| format!("{}={}", c.name, c.value))
-                                    .collect::<Vec<_>>()
-                                    .join("; ");
-                                if !cookie_header.is_empty() {
-                                    match self.fetch_with_cookies(&cookie_header).await {
-                                        Ok(usage) => {
-                                            return Ok(ProviderFetchResult::new(usage, "web"));
-                                        }
-                                        Err(ProviderError::AuthRequired) => continue,
-                                        Err(e) => return Err(e),
-                                    }
-                                }
-                            }
-                            Ok(_) => {}
-                            Err(CookieError::AppBoundEncryption) => {
-                                abe_seen = true;
-                            }
-                            Err(e) => {
-                                tracing::debug!(
-                                    "Failed to extract cookies from {}: {}",
-                                    browser.browser_type.display_name(),
-                                    e
-                                );
-                            }
-                        }
-                    }
-
-                    if abe_seen {
-                        return Err(ProviderError::Other(
-                            CookieError::AppBoundEncryption.to_string(),
-                        ));
-                    }
-                }
-
-                Err(ProviderError::AuthRequired)
+                let workspace_id = ctx.workspace_id.as_deref().ok_or_else(|| {
+                    ProviderError::Other(
+                        "OpenCode Go requires a workspace ID. Set `workspace_id` under the opencodego entry in settings.json (copy the `wrk_...` from https://opencode.ai/workspace/<id>/go).".to_string()
+                    )
+                })?;
+                let cookie_header = ctx.manual_cookie_header.as_deref().ok_or_else(|| {
+                    ProviderError::Other(
+                        "OpenCode Go requires a cookie header. Paste the Cookie header from opencode.ai (DevTools → Network → copy Cookie) under the opencodego entry in manual_cookies.json / Preferences.".to_string()
+                    )
+                })?;
+                let html = self.fetch_usage_page(workspace_id, cookie_header).await?;
+                let snap = Self::parse_usage_text(&html)?;
+                Ok(ProviderFetchResult::new(snap, "web"))
             }
             SourceMode::Cli => Err(ProviderError::UnsupportedSource(SourceMode::Cli)),
             SourceMode::OAuth => Err(ProviderError::UnsupportedSource(SourceMode::OAuth)),
@@ -322,16 +213,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_workspace_ids() {
-        let text = r#"{ id: "wrk_abc123", name: "x" } { id: "wrk_def456" }"#;
-        let ids = OpenCodeGoProvider::parse_workspace_ids(text);
-        assert_eq!(
-            ids,
-            vec!["wrk_abc123".to_string(), "wrk_def456".to_string()]
-        );
-    }
-
-    #[test]
     fn parses_usage_blocks() {
         let text = r#"
             rollingUsage: { usagePercent: 42.5, resetInSec: 3600 }
@@ -347,11 +228,39 @@ mod tests {
         assert!((tertiary.used_percent - 7.0).abs() < 0.001);
     }
 
-    #[test]
-    fn abe_error_message_is_actionable() {
-        use crate::browser::cookies::CookieError;
-        let msg = CookieError::AppBoundEncryption.to_string();
-        assert!(msg.contains("App-Bound Encryption"));
-        assert!(msg.contains("Chrome/Edge"));
+    #[tokio::test]
+    async fn missing_workspace_id_returns_actionable_error() {
+        let provider = OpenCodeGoProvider::new();
+        let ctx = FetchContext {
+            source_mode: SourceMode::Auto,
+            include_credits: true,
+            web_timeout: 60,
+            verbose: false,
+            manual_cookie_header: Some("k=v".to_string()),
+            api_key: None,
+            workspace_id: None,
+            api_region: None,
+        };
+        let err = provider.fetch_usage(&ctx).await.unwrap_err();
+        let msg = format!("{err}");
+        assert!(msg.contains("workspace ID"), "got: {msg}");
+    }
+
+    #[tokio::test]
+    async fn missing_cookie_returns_actionable_error() {
+        let provider = OpenCodeGoProvider::new();
+        let ctx = FetchContext {
+            source_mode: SourceMode::Auto,
+            include_credits: true,
+            web_timeout: 60,
+            verbose: false,
+            manual_cookie_header: None,
+            api_key: None,
+            workspace_id: Some("wrk_test".to_string()),
+            api_region: None,
+        };
+        let err = provider.fetch_usage(&ctx).await.unwrap_err();
+        let msg = format!("{err}");
+        assert!(msg.contains("cookie"), "got: {msg}");
     }
 }

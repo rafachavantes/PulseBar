@@ -36,6 +36,7 @@ import { OpenAiExtras } from "./sections/credentials/OpenAiExtras";
 import { TokenAccountsPanel } from "../tokens/TokenAccountsPanel";
 import { ApiKeySection } from "./ApiKeySection";
 import { CookieSection } from "./CookieSection";
+import { WorkspaceIdSection } from "./WorkspaceIdSection";
 import { MenuBarMetricSection } from "./sections/MenuBarMetricSection";
 
 interface Props {
@@ -343,6 +344,13 @@ export function ProviderDetailPane({
         cookieDomain={cookieDomain}
         onSaved={handleCredentialSaved}
       />
+      {detail.id === "opencodego" && (
+        <WorkspaceIdSection
+          key={`ws-${detail.id}`}
+          providerId={detail.id}
+          onSaved={handleCredentialSaved}
+        />
+      )}
       <ChartsSection
         providerId={detail.id}
         accountEmail={detail.email}
