@@ -148,8 +148,8 @@ pub fn get_provider_region(provider_id: String) -> Result<Option<String>, String
     Ok(provider_region_lookup(&Settings::load(), &provider_id))
 }
 
-fn workspace_provider(_provider_id: &str) -> Option<pulsebar::core::ProviderId> {
-    None
+fn workspace_provider(provider_id: &str) -> Option<pulsebar::core::ProviderId> {
+    pulsebar::core::ProviderId::from_cli_name(provider_id)
 }
 
 #[tauri::command]
