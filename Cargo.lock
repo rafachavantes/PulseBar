@@ -3196,7 +3196,7 @@ dependencies = [
 
 [[package]]
 name = "pulsebar"
-version = "0.38.3"
+version = "0.38.4"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -3234,7 +3234,7 @@ dependencies = [
 
 [[package]]
 name = "pulsebar-desktop-tauri"
-version = "0.38.3"
+version = "0.38.4"
 dependencies = [
  "chrono",
  "pulsebar",
