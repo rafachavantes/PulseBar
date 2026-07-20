@@ -191,12 +191,17 @@ impl Provider for OpenCodeGoProvider {
                         "OpenCode Go requires a workspace ID. Set `workspace_id` under the opencodego entry in settings.json (copy the `wrk_...` from https://opencode.ai/workspace/<id>/go).".to_string()
                     )
                 })?;
-                let cookie_header = ctx.manual_cookie_header.as_deref().ok_or_else(|| {
+                let raw_cookie = ctx.manual_cookie_header.as_deref().ok_or_else(|| {
                     ProviderError::Other(
                         "OpenCode Go requires a cookie header. Paste the Cookie header from opencode.ai (DevTools → Network → copy Cookie) under the opencodego entry in manual_cookies.json / Preferences.".to_string()
                     )
                 })?;
-                let html = self.fetch_usage_page(workspace_id, cookie_header).await?;
+                // Cookie headers must not contain internal whitespace. Paste/render
+                // artifacts (wrapped displays, rich-text copies) can insert spaces
+                // that corrupt Fe26.2 session values; strip all whitespace.
+                let cookie_header: String =
+                    raw_cookie.chars().filter(|c| !c.is_whitespace()).collect();
+                let html = self.fetch_usage_page(workspace_id, &cookie_header).await?;
                 let snap = Self::parse_usage_text(&html)?;
                 Ok(ProviderFetchResult::new(snap, "web"))
             }

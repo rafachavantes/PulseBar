@@ -135,7 +135,14 @@ pub fn set_manual_cookie(
     validate_single_line_secret(&cookie_header, "Cookie header", MAX_COOKIE_HEADER_LEN)?;
 
     let mut cookies = ManualCookies::load();
-    cookies.set(id.cli_name(), cookie_header.trim());
+    // Cookie headers must not contain internal whitespace; paste/render
+    // artifacts (wrapped displays, rich-text copies) can insert spaces that
+    // corrupt Fe26.2 session values. Strip all whitespace defensively.
+    let sanitized: String = cookie_header
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect();
+    cookies.set(id.cli_name(), &sanitized);
     cookies.save().map_err(|e| e.to_string())?;
     Ok(get_manual_cookies())
 }
