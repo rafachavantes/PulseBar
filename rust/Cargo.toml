@@ -1,6 +1,6 @@
 [package]
 name = "pulsebar"
-version = "0.38.1"
+version = "0.38.2"
 edition = "2024"
 authors = ["PulseBar Contributors"]
 description = "Windows and WSL system tray app for monitoring AI provider usage limits"
