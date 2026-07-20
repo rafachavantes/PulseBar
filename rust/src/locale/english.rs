@@ -399,7 +399,7 @@ impl LocaleKey {
             LocaleKey::AboutDescriptionLine2 => "Track AI provider usage in your system tray.",
             LocaleKey::ViewOnGitHub => "→ View on GitHub",
             LocaleKey::SubmitIssue => "→ Submit an Issue",
-            LocaleKey::MaintainedBy => "Maintained by PulseBar contributors",
+            LocaleKey::MaintainedBy => "Maintained by Rafa Chavantes",
             LocaleKey::CommitLabel => "Commit",
             LocaleKey::BuildDateLabel => "Built",
 

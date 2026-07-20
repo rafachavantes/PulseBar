@@ -377,7 +377,7 @@ impl LocaleKey {
             LocaleKey::AboutDescriptionLine2 => "在系统托盘中追踪 AI 服务商用量。",
             LocaleKey::ViewOnGitHub => "→ 查看 GitHub",
             LocaleKey::SubmitIssue => "→ 提交问题",
-            LocaleKey::MaintainedBy => "由 PulseBar 贡献者维护",
+            LocaleKey::MaintainedBy => "由 Rafa Chavantes 维护",
             LocaleKey::CommitLabel => "提交",
             LocaleKey::BuildDateLabel => "构建",
 
