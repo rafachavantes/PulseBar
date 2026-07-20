@@ -490,7 +490,7 @@ pub fn apply_update(installer_path: &PathBuf) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         Command::new(installer_path)
-            .args(["/SILENT", "/CLOSEAPPLICATIONS"])
+            .args(["/SILENT", "/UPDATE", "/CLOSEAPPLICATIONS"])
             .spawn()
             .map_err(|e| format!("Failed to launch installer: {}", e))?;
     }

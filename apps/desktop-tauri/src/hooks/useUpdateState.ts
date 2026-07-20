@@ -13,8 +13,8 @@ import {
 export interface UseUpdateStateResult {
   /** Current update lifecycle state from the backend. */
   updateState: UpdateStatePayload;
-  /** Trigger an update check manually. */
-  checkNow: () => void;
+  /** Trigger an update check manually. Resolves to the latest payload (or undefined on error). */
+  checkNow: () => Promise<UpdateStatePayload | undefined>;
   /** Start downloading an available update. */
   download: () => void;
   /** Launch the downloaded installer and exit. */
@@ -47,9 +47,12 @@ export function useUpdateState(): UseUpdateStateResult {
     useState<UpdateStatePayload>(IDLE_PAYLOAD);
 
   const checkNow = useCallback(() => {
-    checkForUpdates()
-      .then(setUpdateState)
-      .catch(() => {});
+    return checkForUpdates()
+      .then((payload) => {
+        setUpdateState(payload);
+        return payload;
+      })
+      .catch(() => undefined);
   }, []);
 
   const download = useCallback(() => {

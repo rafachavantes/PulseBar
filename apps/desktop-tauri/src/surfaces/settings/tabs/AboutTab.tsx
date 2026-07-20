@@ -23,11 +23,21 @@ const ABOUT_LINKS = [
 export default function AboutTab(_props: TabProps) {
   const [appInfo, setAppInfo] = useState<AppInfoBridge | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [upToDate, setUpToDate] = useState(false);
   const { updateState, checkNow } = useUpdateState();
 
   useEffect(() => {
     void getAppInfo().then(setAppInfo);
   }, []);
+
+  const handleCheck = async () => {
+    setUpToDate(false);
+    const payload = await checkNow();
+    if (payload && payload.status !== "available" && !payload.error) {
+      setUpToDate(true);
+      setTimeout(() => setUpToDate(false), 3000);
+    }
+  };
 
   const openAboutLink = (url: string) => {
     setLinkError(null);
@@ -75,13 +85,16 @@ export default function AboutTab(_props: TabProps) {
       <div className="about-divider" />
 
       <div className="about-updates">
-        <button type="button" className="about-link" onClick={checkNow}>
+        <button type="button" className="about-link" onClick={() => void handleCheck()}>
           Check for Updates
         </button>
         {updateState.status === "available" && (
           <p className="about-update-msg">
             PulseBar {updateState.version} is available!
           </p>
+        )}
+        {upToDate && (
+          <p className="about-update-msg">You're on the latest version.</p>
         )}
         {updateState.error && (
           <p className="about-update-msg">Error: {updateState.error}</p>
