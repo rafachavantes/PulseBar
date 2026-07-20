@@ -63,6 +63,14 @@ impl OpenCodeGoProvider {
             .send()
             .await?;
 
+        // The server redirects unauthenticated requests to auth.opencode.ai.
+        // reqwest follows the redirect, so the final URL is the clearest signal.
+        if response.url().as_str().contains("auth.opencode.ai")
+            || response.url().as_str().contains("/auth/authorize")
+        {
+            return Err(ProviderError::AuthRequired);
+        }
+
         let status = response.status();
         if !status.is_success() {
             if status.as_u16() == 401 || status.as_u16() == 403 {
@@ -152,6 +160,8 @@ impl OpenCodeGoProvider {
         lower.contains("auth/authorize")
             || lower.contains("\"signin\"")
             || lower.contains("please sign in")
+            || lower.contains("continue with github")
+            || lower.contains("<title>openauth")
     }
 }
 
@@ -226,6 +236,46 @@ mod tests {
         assert!((secondary.used_percent - 13.0).abs() < 0.001);
         let tertiary = snap.tertiary.expect("monthly");
         assert!((tertiary.used_percent - 7.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn detects_openauth_login_page_as_signed_out() {
+        let html = r#"<html><head><title>OpenAuth</title></head>
+            <body><button>Continue with GitHub</button>
+            <button>Continue with Google</button></body></html>"#;
+        assert!(OpenCodeGoProvider::looks_signed_out(html));
+    }
+
+    #[test]
+    fn does_not_flag_real_usage_page_as_signed_out() {
+        let html = r#"<html><head><title>OpenCode Go</title></head>
+            <body>rollingUsage: { usagePercent: 42, resetInSec: 3600 }</body></html>"#;
+        assert!(!OpenCodeGoProvider::looks_signed_out(html));
+    }
+
+    /// Verifies the provider's real fetch path works with a live cookie.
+    /// Run with: OPENCODE_GO_TEST_COOKIE="auth=...; oc_locale=en" cargo test -- --ignored
+    #[tokio::test]
+    #[ignore = "live network; set OPENCODE_GO_TEST_COOKIE and OPENCODE_GO_TEST_WORKSPACE"]
+    async fn fetch_usage_page_with_live_cookie_returns_usage() {
+        let cookie = std::env::var("OPENCODE_GO_TEST_COOKIE").unwrap_or_default();
+        let workspace = std::env::var("OPENCODE_GO_TEST_WORKSPACE")
+            .unwrap_or_else(|_| "wrk_01KXCFBCZMP3VDKGRPE47GZT23".to_string());
+        if cookie.is_empty() {
+            eprintln!("skipped: OPENCODE_GO_TEST_COOKIE not set");
+            return;
+        }
+        let provider = OpenCodeGoProvider::new();
+        match provider.fetch_usage_page(&workspace, &cookie).await {
+            Ok(html) => {
+                assert!(
+                    html.contains("rollingUsage"),
+                    "no rollingUsage in response (first 300 chars): {}",
+                    &html[..300.min(html.len())]
+                );
+            }
+            Err(e) => panic!("fetch_usage_page failed with a supposedly valid cookie: {e}"),
+        }
     }
 
     #[tokio::test]
