@@ -2,6 +2,7 @@
 
 mod admin_api;
 mod oauth;
+mod refresh;
 mod web_api;
 
 use async_trait::async_trait;
