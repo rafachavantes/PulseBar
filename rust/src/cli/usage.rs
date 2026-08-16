@@ -476,10 +476,15 @@ fn append_usage_window_lines(
     metadata: &crate::core::ProviderMetadata,
     use_color: bool,
 ) {
-    append_window_line(lines, metadata.session_label, &usage.primary, use_color);
+    append_window_line(
+        lines,
+        crate::core::window_label(metadata.session_label, &usage.primary),
+        &usage.primary,
+        use_color,
+    );
     append_secondary_window_line(
         lines,
-        usage.secondary.as_ref(),
+        usage.secondary.as_ref().filter(|w| !w.is_empty()),
         metadata.weekly_label,
         use_color,
     );
