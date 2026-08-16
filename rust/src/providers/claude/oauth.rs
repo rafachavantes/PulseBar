@@ -34,6 +34,13 @@ impl ClaudeOAuthCredentials {
         }
     }
 
+    /// Whether an expired token can be renewed without user interaction.
+    pub fn can_refresh(&self) -> bool {
+        self.refresh_token
+            .as_deref()
+            .is_some_and(|token| !token.is_empty())
+    }
+
     /// Check if the credentials have a specific scope
     pub fn has_scope(&self, scope: &str) -> bool {
         self.scopes.iter().any(|s| s == scope)
@@ -410,16 +417,61 @@ impl ClaudeOAuthFetcher {
             .ok_or_else(|| ProviderError::OAuth("Could not find home directory".to_string()))
     }
 
+    /// Renew an expired access token and write it back to the credentials
+    /// file, so the Claude CLI keeps working with the rotated token.
+    async fn refresh_credentials(
+        &self,
+        credentials: &ClaudeOAuthCredentials,
+    ) -> Result<ClaudeOAuthCredentials, ProviderError> {
+        let refresh_token = credentials
+            .refresh_token
+            .as_deref()
+            .ok_or_else(|| ProviderError::OAuth("No Claude refresh token".to_string()))?;
+        let client_id = super::refresh::extract_client_id()?;
+
+        let tokens = super::refresh::request_token_refresh(
+            &self.client,
+            &super::refresh::token_endpoint(),
+            &client_id,
+            refresh_token,
+        )
+        .await?;
+
+        if let Ok(path) = self.credentials_path()
+            && path.is_file()
+            && let Err(e) = super::refresh::persist_refreshed_tokens(&path, &tokens)
+        {
+            // The fetch can still use the new token; only the CLI loses the
+            // rotation.
+            tracing::warn!("Failed to persist refreshed Claude token: {e}");
+        }
+
+        let mut renewed = credentials.clone();
+        renewed.access_token = tokens.access_token;
+        if let Some(refresh_token) = tokens.refresh_token {
+            renewed.refresh_token = Some(refresh_token);
+        }
+        renewed.expires_at = tokens.expires_at;
+        tracing::info!("Claude OAuth token refreshed successfully");
+        Ok(renewed)
+    }
+
     /// Fetch usage data using OAuth credentials
     pub async fn fetch_usage(
         &self,
         credentials: &ClaudeOAuthCredentials,
     ) -> Result<OAuthUsageResponse, ProviderError> {
-        if credentials.is_expired() {
+        let renewed;
+        let credentials = if credentials.is_expired() && credentials.can_refresh() {
+            renewed = self.refresh_credentials(credentials).await?;
+            &renewed
+        } else if credentials.is_expired() {
             return Err(ProviderError::OAuth(
                 "OAuth token expired. Run `claude` to refresh.".to_string(),
             ));
-        }
+        } else {
+            credentials
+        };
 
         // Check for required scope
         if !credentials.scopes.is_empty() && !credentials.has_scope("user:profile") {
@@ -661,6 +713,33 @@ fn format_reset_date(date: DateTime<Utc>) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn expired_credentials_with_a_refresh_token_are_renewable() {
+        let credentials = ClaudeOAuthCredentials {
+            access_token: "stale".to_string(),
+            refresh_token: Some("refresh".to_string()),
+            expires_at: Some(Utc::now() - chrono::Duration::hours(1)),
+            scopes: vec!["user:profile".to_string()],
+            rate_limit_tier: None,
+        };
+        assert!(credentials.is_expired());
+        assert!(credentials.can_refresh());
+    }
+
+    #[test]
+    fn expired_credentials_without_a_refresh_token_are_not_renewable() {
+        let credentials = ClaudeOAuthCredentials {
+            access_token: "stale".to_string(),
+            refresh_token: None,
+            expires_at: Some(Utc::now() - chrono::Duration::hours(1)),
+            scopes: vec![],
+            rate_limit_tier: None,
+        };
+        assert!(!credentials.can_refresh());
+    }
+
     use super::{ClaudeOAuthCredentials, ClaudeOAuthFetcher, OAuthUsageResponse, UsageWindow};
     use reqwest::header::HeaderValue;
     use std::time::Duration;

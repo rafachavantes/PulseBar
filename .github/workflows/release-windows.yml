@@ -1,7 +1,22 @@
 name: Release Windows App
 
+# Builds the Tauri desktop shell's own NSIS/WiX bundle — the same one
+# produced by `tauri build` locally — and uploads it to a GitHub Release.
+# This intentionally does not use Inno Setup: every published PulseBar
+# release so far shipped Tauri's native bundler output
+# (PulseBar.Desktop_<version>_x64-setup.exe), and Tauri's
+# `webviewInstallMode: downloadBootstrapper` already handles the WebView2
+# runtime at install time, so no separate bootstrapper packaging is needed.
+
 on:
+  release:
+    types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to upload assets to (e.g. v0.39.0). Leave empty to build without publishing."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -11,6 +26,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -35,6 +52,18 @@ jobs:
           fi
           echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
 
+      - name: Determine release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+          if [[ -n "$TAG" ]]; then
+            echo "Will upload assets to release $TAG"
+          else
+            echo "No tag provided; building without publishing (workflow_dispatch dry run)"
+          fi
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -44,132 +73,54 @@ jobs:
         shell: bash
         run: pnpm --dir apps/desktop-tauri install --frozen-lockfile
 
-      - name: Build Windows executable
+      - name: Build Tauri bundle (NSIS + MSI)
         shell: bash
-        run: |
-          set -euo pipefail
-          pnpm --dir apps/desktop-tauri exec tauri build --no-bundle
+        run: pnpm --dir apps/desktop-tauri exec tauri build
 
-          SOURCE_EXE="target/release/pulsebar-desktop-tauri.exe"
-          DEST_EXE="target/release/pulsebar.exe"
-
-          if [[ ! -f "$SOURCE_EXE" ]]; then
-            echo "Missing expected Tauri binary: $SOURCE_EXE" >&2
-            exit 1
-          fi
-
-          cp "$SOURCE_EXE" "$DEST_EXE"
-
-          if command -v objdump >/dev/null 2>&1; then
-            if objdump -p "$DEST_EXE" | grep -qi 'DLL Name: WebView2Loader.dll'; then
-              echo "pulsebar.exe imports WebView2Loader.dll, but release builds are expected to statically link the loader." >&2
-              exit 1
-            fi
-          fi
-
-      - name: Install Inno Setup
+      - name: Collect release assets
         shell: pwsh
         run: |
-          choco install innosetup --no-progress -y
-
-      - name: Download installer dependencies
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force rust\target\installer-deps | Out-Null
-          $vcRedistPath = "rust\target\installer-deps\vc_redist.x64.exe"
-          $webView2BootstrapperPath = "rust\target\installer-deps\MicrosoftEdgeWebview2Setup.exe"
-          Invoke-WebRequest `
-            -Uri "https://aka.ms/vc14/vc_redist.x64.exe" `
-            -OutFile $vcRedistPath
-          Invoke-WebRequest `
-            -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" `
-            -OutFile $webView2BootstrapperPath
-
-          foreach ($dependency in @($vcRedistPath, $webView2BootstrapperPath)) {
-            $signature = Get-AuthenticodeSignature -FilePath $dependency
-            if ($signature.Status -ne 'Valid') {
-              throw "$dependency signature is not valid. Status: $($signature.Status)"
-            }
-
-            $subject = $signature.SignerCertificate.Subject
-            if ($subject -notlike '*Microsoft Corporation*') {
-              throw "$dependency signer is unexpected: $subject"
-            }
-          }
-
-      - name: Build installer
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force rust\target\installer | Out-Null
-          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            throw "Inno Setup compiler not found at $iscc"
-          }
-
-          Push-Location rust\installer
-          try {
-            & $iscc `
-              /Qp `
-              "/DAppVersion=$env:APP_VERSION" `
-              "/DTargetBinDir=..\..\target\release" `
-              "/DVCRedistPath=..\target\installer-deps\vc_redist.x64.exe" `
-              "/DWebView2BootstrapperPath=..\target\installer-deps\MicrosoftEdgeWebview2Setup.exe" `
-              "/DOutputDir=..\target\installer" `
-              "/DOutputBaseFilename=CodexBar-$env:APP_VERSION-Setup" `
-              pulsebar.iss
-          } finally {
-            Pop-Location
-          }
-
-      - name: Prepare release assets
-        shell: pwsh
-        run: |
-          $assetDir = "rust\target\release-assets"
+          $ErrorActionPreference = "Stop"
+          $assetDir = "release-assets"
           New-Item -ItemType Directory -Force $assetDir | Out-Null
 
-          $installer = "rust\target\installer\CodexBar-$env:APP_VERSION-Setup.exe"
-          $portableExe = Join-Path $assetDir "CodexBar-$env:APP_VERSION-portable.exe"
+          $bundleRoot = "target\release\bundle"
+          $installers = @()
+          $installers += Get-ChildItem -Path (Join-Path $bundleRoot "nsis") -Filter "*-setup.exe" -ErrorAction SilentlyContinue
+          $installers += Get-ChildItem -Path (Join-Path $bundleRoot "msi") -Filter "*.msi" -ErrorAction SilentlyContinue
 
-          foreach ($path in @("target\release\pulsebar.exe", $installer)) {
-            if (-not (Test-Path $path)) {
-              throw "Missing expected asset: $path"
-            }
+          if ($installers.Count -eq 0) {
+            throw "No NSIS or MSI installer found under $bundleRoot. Check that tauri.conf.json bundle.targets includes nsis/msi."
           }
 
-          Copy-Item "target\release\pulsebar.exe" $portableExe -Force
-
-          foreach ($path in @($installer, $portableExe)) {
-            $fileName = Split-Path $path -Leaf
-            $destPath = Join-Path $assetDir $fileName
-            if ((Resolve-Path $path).Path -ne (Resolve-Path $destPath -ErrorAction SilentlyContinue).Path) {
-              Copy-Item $path $assetDir -Force
-            }
-
+          foreach ($installer in $installers) {
+            $destPath = Join-Path $assetDir $installer.Name
+            Copy-Item $installer.FullName $destPath -Force
             $hash = (Get-FileHash -Algorithm SHA256 $destPath).Hash.ToLower()
-            "$hash  $fileName" | Set-Content -Encoding ascii "$destPath.sha256"
+            "$hash  $($installer.Name)" | Set-Content -Encoding ascii "$destPath.sha256"
           }
+
+          Get-ChildItem $assetDir | Select-Object Name, Length | Format-Table -AutoSize
 
       - name: Upload release assets
-        if: github.event_name == 'release'
+        if: env.RELEASE_TAG != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          gh release upload "$GITHUB_REF_NAME" \
-            "rust/target/release-assets/CodexBar-$APP_VERSION-Setup.exe" \
-            "rust/target/release-assets/CodexBar-$APP_VERSION-Setup.exe.sha256" \
-            "rust/target/release-assets/CodexBar-$APP_VERSION-portable.exe" \
-            "rust/target/release-assets/CodexBar-$APP_VERSION-portable.exe.sha256" \
-            --clobber
+          gh release view "$RELEASE_TAG" >/dev/null
+          shopt -s nullglob
+          assets=(release-assets/*)
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "No release assets to upload" >&2
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
 
       - name: Upload workflow artifact
-        if: github.event_name != 'release'
+        if: env.RELEASE_TAG == ''
         uses: actions/upload-artifact@v6
         with:
           name: pulsebar-windows-release-assets
-          path: |
-            rust/target/release-assets/CodexBar-${{ env.APP_VERSION }}-Setup.exe
-            rust/target/release-assets/CodexBar-${{ env.APP_VERSION }}-Setup.exe.sha256
-            rust/target/release-assets/CodexBar-${{ env.APP_VERSION }}-portable.exe
-            rust/target/release-assets/CodexBar-${{ env.APP_VERSION }}-portable.exe.sha256
+          path: release-assets/

@@ -22,7 +22,37 @@ pub struct RateWindow {
     pub reset_description: Option<String>,
 }
 
+/// A window at least this long is a weekly quota rather than a session one.
+pub const WEEKLY_WINDOW_MINUTES: u32 = 7 * 24 * 60;
+
+/// Label for a window slot, corrected against the duration the provider
+/// actually reported. Codex moved its account-wide quota from a 5-hour window
+/// to a weekly one while still sending it in the primary slot, which used to
+/// render weekly numbers under a "Session" heading.
+pub fn window_label(default_label: &'static str, window: &RateWindow) -> &'static str {
+    if window.is_weekly() && default_label.starts_with("Session") {
+        return "Weekly";
+    }
+    default_label
+}
+
 impl RateWindow {
+    /// Whether this window spans a week or more.
+    pub fn is_weekly(&self) -> bool {
+        self.window_minutes
+            .is_some_and(|minutes| minutes >= WEEKLY_WINDOW_MINUTES)
+    }
+
+    /// Whether the window carries no information at all. Providers sometimes
+    /// send a placeholder window (Codex does for its secondary slot) that would
+    /// otherwise render as a real "0% used" quota.
+    pub fn is_empty(&self) -> bool {
+        self.used_percent == 0.0
+            && self.window_minutes.is_none()
+            && self.resets_at.is_none()
+            && self.reset_description.is_none()
+    }
+
     /// Create a new rate window
     pub fn new(used_percent: f64) -> Self {
         Self {
@@ -116,5 +146,57 @@ mod tests {
     fn test_exhausted() {
         assert!(RateWindow::new(100.0).is_exhausted());
         assert!(!RateWindow::new(99.0).is_exhausted());
+    }
+
+    #[test]
+    fn a_window_of_seven_days_or_more_is_weekly() {
+        let mut window = RateWindow::new(48.0);
+        window.window_minutes = Some(10_080);
+        assert!(window.is_weekly());
+
+        window.window_minutes = Some(300);
+        assert!(!window.is_weekly());
+
+        window.window_minutes = None;
+        assert!(!window.is_weekly());
+    }
+
+    #[test]
+    fn a_window_without_duration_reset_or_usage_is_empty() {
+        // Codex sends a placeholder secondary window shaped like this.
+        assert!(RateWindow::new(0.0).is_empty());
+    }
+
+    #[test]
+    fn a_window_carrying_any_signal_is_not_empty() {
+        assert!(!RateWindow::new(1.0).is_empty());
+
+        let mut with_duration = RateWindow::new(0.0);
+        with_duration.window_minutes = Some(10_080);
+        assert!(!with_duration.is_empty());
+
+        let mut with_reset = RateWindow::new(0.0);
+        with_reset.resets_at = Some(Utc::now());
+        assert!(!with_reset.is_empty());
+    }
+
+    #[test]
+    fn weekly_windows_relabel_a_session_slot() {
+        let mut weekly = RateWindow::new(48.0);
+        weekly.window_minutes = Some(10_080);
+        assert_eq!(window_label("Session", &weekly), "Weekly");
+
+        let mut session = RateWindow::new(48.0);
+        session.window_minutes = Some(300);
+        assert_eq!(window_label("Session", &session), "Session");
+    }
+
+    #[test]
+    fn a_label_that_already_matches_the_duration_is_left_alone() {
+        let mut weekly = RateWindow::new(10.0);
+        weekly.window_minutes = Some(10_080);
+        // Grok reports a monthly window; do not rewrite it to "Weekly".
+        assert_eq!(window_label("Monthly", &weekly), "Monthly");
+        assert_eq!(window_label("Weekly", &weekly), "Weekly");
     }
 }

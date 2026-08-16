@@ -143,15 +143,17 @@ impl ProviderUsageSnapshot {
             actual_used_percent: p.actual_used_percent,
         });
 
+        // Providers may send a placeholder secondary window; treat it as absent
+        // so it does not render as a real "0% used" quota.
+        let secondary_window = usage.secondary.as_ref().filter(|sw| !sw.is_empty());
+
         // Compute pace for secondary window (weekly) to derive reserve info
-        let secondary_pace = usage
-            .secondary
-            .as_ref()
-            .and_then(|sw| pulsebar::core::UsagePace::weekly(sw, None, 10080));
+        let secondary_pace =
+            secondary_window.and_then(|sw| pulsebar::core::UsagePace::weekly(sw, None, 10080));
 
         let primary_snap = RateWindowSnapshot::from_rate_window(&usage.primary);
 
-        let secondary_snap = usage.secondary.as_ref().map(|sw| {
+        let secondary_snap = secondary_window.map(|sw| {
             let mut s = RateWindowSnapshot::from_rate_window(sw);
             if let Some(ref p) = secondary_pace {
                 s = s.with_pace_reserve(p);
@@ -168,12 +170,11 @@ impl ProviderUsageSnapshot {
             provider_id: id.cli_name().to_string(),
             display_name: id.display_name().to_string(),
             primary: primary_snap,
-            primary_label: Some(metadata.session_label.to_string()),
+            primary_label: Some(
+                pulsebar::core::window_label(metadata.session_label, &usage.primary).to_string(),
+            ),
             secondary: secondary_snap,
-            secondary_label: usage
-                .secondary
-                .as_ref()
-                .map(|_| metadata.weekly_label.to_string()),
+            secondary_label: secondary_window.map(|_| metadata.weekly_label.to_string()),
             model_specific: usage
                 .model_specific
                 .as_ref()
@@ -935,6 +936,76 @@ pub(super) fn parse_metric_preference(s: &str) -> Option<MetricPreference> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Codex now reports its account quota as a 7-day window in the primary
+    /// slot, which used to render weekly numbers under a "Session" heading.
+    #[test]
+    fn a_weekly_primary_window_is_labelled_weekly() {
+        let mut usage = pulsebar::core::UsageSnapshot::new(RateWindow::with_details(
+            48.0,
+            Some(10_080),
+            None,
+            None,
+        ));
+        usage.secondary = Some(RateWindow::new(0.0));
+        let result = pulsebar::core::ProviderFetchResult::new(usage, "oauth");
+        let metadata = pulsebar::core::instantiate_provider(ProviderId::Codex);
+
+        let snapshot = ProviderUsageSnapshot::from_fetch_result(
+            ProviderId::Codex,
+            metadata.metadata(),
+            &result,
+        );
+
+        assert_eq!(snapshot.primary_label.as_deref(), Some("Weekly"));
+    }
+
+    /// The same placeholder secondary window would otherwise render as a real
+    /// "0% used" weekly quota the user does not have.
+    #[test]
+    fn an_empty_secondary_window_is_dropped() {
+        let mut usage = pulsebar::core::UsageSnapshot::new(RateWindow::with_details(
+            48.0,
+            Some(10_080),
+            None,
+            None,
+        ));
+        usage.secondary = Some(RateWindow::new(0.0));
+        let result = pulsebar::core::ProviderFetchResult::new(usage, "oauth");
+        let metadata = pulsebar::core::instantiate_provider(ProviderId::Codex);
+
+        let snapshot = ProviderUsageSnapshot::from_fetch_result(
+            ProviderId::Codex,
+            metadata.metadata(),
+            &result,
+        );
+
+        assert!(snapshot.secondary.is_none());
+        assert!(snapshot.secondary_label.is_none());
+    }
+
+    #[test]
+    fn a_real_secondary_window_is_kept() {
+        let mut usage = pulsebar::core::UsageSnapshot::new(RateWindow::with_details(
+            48.0,
+            Some(300),
+            None,
+            None,
+        ));
+        usage.secondary = Some(RateWindow::with_details(12.0, Some(10_080), None, None));
+        let result = pulsebar::core::ProviderFetchResult::new(usage, "oauth");
+        let metadata = pulsebar::core::instantiate_provider(ProviderId::Codex);
+
+        let snapshot = ProviderUsageSnapshot::from_fetch_result(
+            ProviderId::Codex,
+            metadata.metadata(),
+            &result,
+        );
+
+        assert_eq!(snapshot.primary_label.as_deref(), Some("Session"));
+        assert!(snapshot.secondary.is_some());
+        assert_eq!(snapshot.secondary_label.as_deref(), Some("Weekly"));
+    }
 
     #[test]
     fn tray_status_prefers_relative_reset_countdown() {
